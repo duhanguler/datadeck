@@ -1,0 +1,28 @@
+name: Bug Report
+description: Report a bug, regression, or query/UI issue in DataDeck.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear, concise description of the issue and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open DataDeck -> Products
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Environment
+      placeholder: "WordPress 7.1 · PHP 8.2 · WooCommerce 11.3 · DataDeck 1.0.0"
+    validations:
+      required: true

@@ -17,8 +17,8 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "wordpress.org/plugins",
-        "slug": "datadeck"
+        "resource": "url",
+        "url": "https://github.com/duhanguler/datadeck/releases/latest/download/datadeck.zip"
       },
       "options": {
         "activate": true
@@ -26,7 +26,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php require_once '/wordpress/wp-load.php'; $posts = [ ['Scaling WooCommerce Past 100k SKUs', 'publish', 'Scaling WooCommerce Catalogs', 'Lookup tables and selective hydration keep queries constant.'], ['Zero-Shift Inline Table Architecture', 'publish', 'Zero-Shift Admin Tables', 'Exact CSS geometry prevents row jitter during inline editing.'], ['Draft Article Missing SEO Metadata and Featured Thumbnail for Live Audit Testing', 'draft', '', ''] ]; foreach ($posts as $p) { $id = wp_insert_post(['post_title' => $p[0], 'post_status' => $p[1], 'post_excerpt' => $p[3], 'post_content' => 'DataDeck interactive Playground demo content.']); if ($id && $p[2]) { update_post_meta($id, '_yoast_wpseo_title', $p[2]); update_post_meta($id, '_yoast_wpseo_metadesc', $p[3]); } }"
+      "code": "<?php require_once '/wordpress/wp-load.php'; $posts = [ ['Scaling WooCommerce Past 100k SKUs Without EAV Bottlenecks', 'publish', 'Scaling WooCommerce Past 100k SKUs', 'Lookup tables, selective hydration, and keyset streaming keep queries constant at 6-8 SQL.'], ['Zero Layout Shift Inline Table Editing Architecture', 'publish', 'Zero-Shift Admin Tables in WordPress', 'Exact CSS box geometry and inset focus rings prevent row jitter during spreadsheet editing.'], ['Safe AST Formula Evaluation in PHP 8.2 Without Ever Calling eval()', 'publish', 'Safe AST Formula Parser in PHP', 'Recursive-descent expression compiler for pricing formulas, templates, and conditional rules.'], ['Long Draft Article Missing SEO Metadata and Featured Thumbnail for Live Audit Testing in DataDeck', 'draft', '', ''], ['Automating Flash Sales with Action Scheduler and Auto-Reverting Price Snapshots', 'publish', 'Auto-Reverting WooCommerce Flash Sales', 'Schedule bulk price changes with one-click or automated rollback snapshots.'] ]; foreach ($posts as $p) { $id = wp_insert_post(['post_title' => $p[0], 'post_status' => $p[1], 'post_excerpt' => $p[3], 'post_content' => str_repeat('High-precision WordPress engineering content built for DataDeck interactive Playground verification. ', 10)]); if ($id && $p[2]) { update_post_meta($id, '_yoast_wpseo_title', $p[2]); update_post_meta($id, '_yoast_wpseo_metadesc', $p[3]); } }"
     }
   ]
 }

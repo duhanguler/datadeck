@@ -1,0 +1,19 @@
+name: Feature Request
+description: Propose a new field provider, bulk operator, lens, or workflow improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What repetitive admin task or paid-plugin paywall does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the ideal UX, field integration, or WP-CLI / REST behavior.
+    validations:
+      required: true

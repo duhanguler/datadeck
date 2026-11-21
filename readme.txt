@@ -1,5 +1,5 @@
 === DataDeck – Admin Columns, Inline & Bulk Editor ===
-Contributors: datadeck
+Contributors: duhanguler
 Tags: admin columns, bulk edit, inline edit, spreadsheet, custom fields
 Requires at least: 6.6
 Tested up to: 7.1

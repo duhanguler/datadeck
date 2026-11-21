@@ -1,6 +1,7 @@
 {
-  "name": "datadeck/datadeck",
+  "name": "duhanguler/datadeck",
   "description": "High-performance admin columns, zero-shift inline editor, AST bulk formula engine, and one-click rollback for WordPress & WooCommerce.",
+  "homepage": "https://github.com/duhanguler/datadeck",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "keywords": [

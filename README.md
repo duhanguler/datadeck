@@ -1,66 +1,147 @@
-# DataDeck
+<p align="center">
+  <img src=".wordpress-org/banner-1544x500.svg" alt="DataDeck — Admin Columns, Inline & Bulk Editor for WordPress & WooCommerce" width="100%" />
+</p>
 
-**High-performance admin columns, zero-shift inline spreadsheet editor, safe AST bulk formula engine, and one-click rollback for WordPress & WooCommerce.**
+<h1 align="center">DataDeck</h1>
 
-`100% Free & Open Source (GPL-2.0-or-later)` · `Zero Frontend Footprint (0 KB)` · `6–8 SQL Queries/Page` · `~25 KB Gzipped Initial Bundle`
+<p align="center">
+  <strong>High-performance admin columns, zero-shift inline spreadsheet editor, safe AST bulk formula engine, and one-click rollback for WordPress &amp; WooCommerce.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/duhanguler/datadeck/actions/workflows/ci.yml"><img src="https://github.com/duhanguler/datadeck/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/duhanguler/datadeck/actions/workflows/plugin-check.yml"><img src="https://github.com/duhanguler/datadeck/actions/workflows/plugin-check.yml/badge.svg" alt="WordPress Plugin Check" /></a>
+  <a href="https://github.com/duhanguler/datadeck/releases/latest"><img src="https://img.shields.io/github/v/release/duhanguler/datadeck?style=flat&color=3858e9" alt="Latest Release" /></a>
+  <img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=flat" alt="PHP 8.1+" />
+  <img src="https://img.shields.io/badge/WordPress-6.6%20%E2%80%93%207.1-21759B?style=flat" alt="WordPress 6.6 - 7.1" />
+  <img src="https://img.shields.io/badge/Initial%20Bundle-25.4%20KB%20gzip-1a7f37?style=flat" alt="25.4 KB gzip" />
+  <img src="https://img.shields.io/badge/Frontend%20Footprint-0%20Bytes-1a7f37?style=flat" alt="0 Bytes Frontend" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv2%2B-18181b?style=flat" alt="GPLv2+ License" /></a>
+</p>
+
+<p align="center">
+  <a href="https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/duhanguler/datadeck/main/.wordpress-org/blueprints/blueprint.json"><strong>Try Live in Browser (WordPress Playground)</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/duhanguler/datadeck/releases/latest/download/datadeck.zip"><strong>Download datadeck.zip (138 KB)</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#why-datadeck-vs-paid-alternatives"><strong>Comparison</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#performance--architecture"><strong>Benchmarks</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#local-development-docker"><strong>Docker Setup</strong></a>
+</p>
 
 ---
 
-## Why DataDeck Exists
+## Interface Preview
 
-Essential WordPress content and catalog operations—inline editing custom fields, bulk-adjusting WooCommerce prices, inspecting ACF/SEO metadata in columns, and safely rolling back bulk mistakes—are historically fragmented across expensive annual paywalls (**Admin Columns Pro**, **WP Sheet Editor**, **SwiftGrid Pro**).
+> **Design Philosophy:** Built natively on WordPress 7.0+ `--wpds-*` design tokens with `0px` layout-shift inline cells, `tabular-nums` alignment, pinned primary columns, and `⌘K` keyboard control. No decorative gradients, no fake KPI bloat, no dashboard nags, no upsell walls.
 
-DataDeck delivers all of them in a single, razor-sharp, zero-upsell open-source plugin engineered for **100,000+ record catalogs** and aligned natively with WordPress 6.9/7.0's `--wpds-*` design tokens.
+<p align="center">
+  <img src=".wordpress-org/screenshot-1.png" alt="DataDeck WooCommerce Products Workspace with inline variation expansion and SQL performance telemetry" width="100%" />
+</p>
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src=".wordpress-org/screenshot-2.png" alt="Safe AST Bulk Formula Engine with Dry-Run Before/After diff preview" />
+      <p align="center"><sub><strong>Safe AST Formula Engine &amp; Dry-Run Diff Preview</strong> — Preview exact <code>Before → After</code> values before touching the database.</sub></p>
+    </td>
+    <td width="50%">
+      <img src=".wordpress-org/screenshot-3.png" alt="Built-in Posts SEO Audit Lens with 60/160 character meters" />
+      <p align="center"><sub><strong>Built-in SEO Audit Lens</strong> — Instant character count meters (<code>60</code> / <code>160</code>) for Yoast SEO &amp; Rank Math.</sub></p>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## Key Capabilities
+## Why DataDeck vs Paid Alternatives
 
-- **Universal Entity Engine:** Posts, Pages, any Custom Post Type (CPT), Media Library (`alt` text & dimensions audit), Users, WooCommerce Products (with **inline expandable Variation sub-rows**), and **HPOS Orders**.
-- **Zero-Shift Spreadsheet Editing:** Fixed-geometry cells (`Compact 30px` / `Default 36px` / `Comfortable 48px`) with `0px` layout shift on focus/edit, `tabular-nums` alignment, pinned primary column, resizable column headers, `Tab`/`Enter`/`Arrow` navigation, **Staged Save** (with `Cmd/Ctrl+Z` undo) & **Instant Save** modes.
-- **Excel & Google Sheets Interop:** Vertical range selection (`Shift+Click` / `Shift+Arrows`), multi-cell TSV paste (`Ctrl/Cmd+V`), copy (`Ctrl/Cmd+C`), Fill Down (`Cmd/Ctrl+D`), and a Linear-style **`Cmd/Ctrl+K` Command Palette**.
-- **Zero-Paywall Integrations:** Core Fields, Native Meta auto-discovery, **ACF & Secure Custom Fields (SCF)**, **Meta Box**, **WooCommerce CRUD & HPOS**, **Yoast SEO**, and **Rank Math** (with live `60`/`160` character meters).
-- **Safe AST Formula Bulk Engine (Zero `eval()`):** Recursive-descent tokenizer, parser, and evaluator supporting arithmetic, conditionals (`if`), rounding (`.99` / `.95`), string functions, dynamic templates (`{title} | {site_name}`), **Dry-Run Before/After Diff Preview**, and adaptive chunking.
-- **Safety Net & Scheduled Campaigns:** Compact delta-snapshot audit tables (`{prefix}_datadeck_batches` & `{prefix}_datadeck_changes`) powering **One-Click Batch Rollback** and **Scheduled Auto-Reverting Campaigns** (e.g., weekend flash sale that automatically restores exact pre-sale prices).
-- **Built-in Audit Lenses:** Zero-setup views for *Pricing & SKU Audit*, *Inventory Risk*, *Missing Images*, *SEO Audit*, *Content Hygiene*, and *Missing Alt Text*.
-- **Developer & Agency Ready:** Role-based Saved Views with **`datadeck-json/`** Git auto-sync (just like `acf-json/`), **WP-CLI** commands, and **WordPress 6.9+ Abilities API** registration.
+Essential WordPress admin workflows—editing ACF/custom fields inline, adjusting WooCommerce prices in bulk, auditing SEO metadata, and safely rolling back mistakes—are typically locked behind expensive annual subscriptions or split into per-post-type add-ons.
+
+**DataDeck ships all of them 100% free and GPLv2+ open source.**
+
+| Capability | Admin Columns Pro (\$79–\$199/yr) | WP Sheet Editor (\$79+/module) | SwiftGrid Pro (\$69/yr) | **DataDeck (Free · GPLv2+)** |
+| :--- | :---: | :---: | :---: | :---: |
+| **Posts, Pages, CPTs, Media &amp; Users** | Paid for Inline/Bulk | Separate Paid Plugins | Products Only | **Included** |
+| **WooCommerce Products + Inline Variations** | Paid Add-on | Separate Paid Plugin | Partial Free | **Included** |
+| **WooCommerce HPOS Orders** | Paid Add-on | Separate Paid Plugin | Not Supported | **Included** |
+| **ACF / SCF / Meta Box / Native Meta** | Business Tier+ | Paid | Paid | **Included** |
+| **Yoast SEO &amp; Rank Math Inline/Bulk** | Paid Add-on | Paid | Not Supported | **Included** |
+| **Excel / Google Sheets Paste (`Ctrl+V`) &amp; Fill (`⌘D`)** | Not Supported | Paid | Partial | **Included** |
+| **Safe AST Formulas (`if`, `round`, `.99`) + Dry-Run Diff** | Not Supported | Paid | Price Only | **Included** |
+| **Scheduled &amp; Auto-Reverting Bulk Campaigns** | Not Supported | Not Supported | Paid | **Included** |
+| **Audit History &amp; One-Click Batch Rollback** | Not Supported | Not Supported | Paid | **Included** |
+| **Git-Syncable Views (`datadeck-json/`)** | Developer Tier | Not Supported | Not Supported | **Included** |
+| **60 FPS Virtualized Grid + Constant `6–8 SQL`/Page** | Legacy `WP_List_Table` | Heavy DOM | Standard | **Included** |
 
 ---
 
-## Performance & Systems Architecture
+## Core Features
+
+* **Universal Entity Engine:** Switch seamlessly across **Posts, Pages, Custom Post Types, Media Library, Users, WooCommerce Products (with inline expandable Variations), and HPOS Orders**—or open directly from any native list screen via the `[ Classic List | DataDeck Grid ]` header toggle.
+* **True Spreadsheet Ergonomics:** `0px` layout-shift cell editing, 3 density modes (`Compact 30px` / `Default 36px` / `Comfortable 48px`), pinned sticky Title column, drag-to-resize headers, `Tab`/`Enter`/`Arrow` navigation, vertical range selection (`Shift+Click` / `Shift+Arrows`), **Excel/Google Sheets `Ctrl+C`/`Ctrl+V` matrix paste**, **Fill Down (`Cmd/Ctrl+D`)**, and **`Cmd/Ctrl+K` Command Palette**.
+* **Staged Save &amp; Instant Save:** Stage multiple edits across rows with a subtle top-right cell indicator and `Cmd/Ctrl+Z` client undo before committing in one atomic batch—or switch to Instant Save for rapid single-field updates.
+* **Built-In Zero-Setup Audit Lenses:**
+  * **WooCommerce:** *Pricing &amp; SKU Audit* (catches `sale_price >= regular_price`, missing prices/SKUs), *Inventory Risk* (out-of-stock &amp; low stock `<= 5`), *Missing Images*.
+  * **Content &amp; SEO:** *SEO Audit* (titles `> 60` chars, missing thumbnails/excerpts), *Content Hygiene*.
+  * **Media Accessibility:** *Missing Alt Text* lens for rapid bulk `alt` text editing.
+* **Safe AST Formula Bulk Engine (Zero `eval()`):** Compiles expressions once into a reusable AST using a strict recursive-descent parser with an explicit pure-function allowlist:
+  * `if(regular_price > 0, round(regular_price * 0.85, 0) - 0.01, '')`
+  * `if(stock_quantity == 0, 'outofstock', 'instock')`
+  * `concat(upper(trim(sku)), ' - ', title)`
+  * Templates: `{title} — {site_name} ({year})`
+* **Delta-Snapshot History &amp; Scheduled Auto-Revert Campaigns:** Every inline commit, clipboard paste, and bulk operation records exact `old -> new` field deltas in `{prefix}_datadeck_batches` / `{prefix}_datadeck_changes`. Roll back any mistake in one click, or schedule a weekend sale that **automatically reverts every modified product back to its exact pre-campaign price** on Monday morning.
+* **Agency &amp; Developer Workflow:** Role-scoped Saved Views with automatic **`datadeck-json/`** theme folder sync (just like `acf-json/`), full **WP-CLI** commands, and **WordPress 6.9+ Abilities API** registration.
+
+---
+
+## Performance &amp; Architecture
+
+Engineered for **100,000+ SKU catalogs** and enforced by automated budgets in CI:
 
 | Metric | Measured Result | Engineering Mechanism |
 | :--- | :--- | :--- |
-| **Public Frontend Footprint** | **`0 B` JS / `0 B` CSS / `0` SQL** | Early-exit context guard in `datadeck.php` skips bootstrap on public requests |
-| **Initial Workspace Bundle** | **`25.3 KB` gzip** (budget `<= 45 KB`) | WP core externalization + `React.lazy()` code-splitting for all modals/drawers |
-| **Native List Switcher** | **`0.66 KB` gzip** | Zero-dependency segmented pill injected only on supported list screens |
-| **50 Products + ACF + Cats** | **`8 SQL` / `~3 ms`** (constant O(1) queries) | `SmartQueryPlanner` (`wc_product_meta_lookup`) + `SelectiveHydrator` (skips `_elementor_data` blobs) |
-| **50 Posts + SEO + Terms** | **`6 SQL` / `~1.3 ms`** | Two-step ID selection (`no_found_rows`) + single-query selective term hydration |
-| **50,000-Row CSV Export** | **Constant `~15 MB` PHP RAM** | Keyset cursor (`ID > $last_id`) streaming directly to `php://output` with CSV formula-injection neutralization |
+| **Public Frontend Footprint** | **`0 B` JS · `0 B` CSS · `0` SQL** | Early-exit context guard in `datadeck.php` registers zero hooks on public requests |
+| **Initial Workspace Bundle** | **`25.4 KB` gzip** *(CI gate `<= 45 KB`)* | WP Core externalization + `React.lazy()` code-splitting for all modals &amp; drawers |
+| **Native List Switcher** | **`0.66 KB` gzip** | Zero-dependency toggle loaded only on supported `wp-admin` list screens |
+| **Release Archive Size** | **`137.6 KB` total ZIP** | Clean production build with lightweight PSR-4 autoloader (zero runtime vendor bloat) |
+| **50 Products + ACF + Terms** | **`8 SQL` · `~1.8 ms`** *(constant O(1))* | `SmartQueryPlanner` routes price/SKU/stock to indexed `wc_product_meta_lookup`; `SelectiveHydrator` fetches only visible meta keys &amp; skips multi-MB `_elementor_data` blobs |
+| **50 Posts + SEO + Terms** | **`5–6 SQL` · `~1.2 ms`** | Two-step ID planner (`no_found_rows`) + single-query selective term hydration |
+| **50,000-Row CSV Export** | **Constant `~15 MB` PHP RAM** | Keyset cursor (`WHERE ID > $last_id`) streaming directly to `php://output` with formula-injection neutralization |
 
 ```mermaid
 flowchart LR
-    UI["React 18 + TypeScript Virtualized Grid (--wpds-*)"] --> REST["REST /datadeck/v1/ (Field Projection + AbortController)"]
+    UI["React 18 + TS Virtualized Grid (--wpds-*)"] --> REST["REST /datadeck/v1/ (Field Projection + AbortController)"]
     REST --> Planner["SmartQueryPlanner (wc_product_meta_lookup + Two-Step IDs)"]
-    REST --> Hydrator["SelectiveHydrator (Visible Meta Keys Only, 1 SQL)"]
-    REST --> Bulk["BulkOperationEngine + Safe AST Parser (No eval)"]
+    REST --> Hydrator["SelectiveHydrator (Visible Meta & Terms Only)"]
+    REST --> Bulk["BulkOperationEngine + Safe AST Parser (Zero eval)"]
     Bulk --> Audit["Delta Snapshot History & One-Click Rollback"]
 ```
 
 ---
 
-## Local Development (Docker)
+## Installation
+
+### Quick Install (No Build Required)
+1. Download [`datadeck.zip`](https://github.com/duhanguler/datadeck/releases/latest/download/datadeck.zip) from the latest GitHub Release.
+2. In WordPress Admin, go to **Plugins → Add New → Upload Plugin**, select `datadeck.zip`, and click **Activate**.
+3. Open **DataDeck** from the admin sidebar—or click **DataDeck Grid** at the top of your Posts, Products, Orders, Media, or Users screen.
+
+### Local Development (Docker)
 
 ```bash
-# 1. Install JS dependencies & build production assets
+git clone https://github.com/duhanguler/datadeck.git
+cd datadeck
 npm install
 npm run build
 npm run check:budget
 
-# 2. Boot WordPress (PHP 8.2) + MariaDB + WP-CLI on http://localhost:8888
+# Start WordPress (PHP 8.2) + MariaDB + WP-CLI on http://localhost:8888
 docker compose up -d
 
-# 3. Install WordPress, WooCommerce, Secure Custom Fields, DataDeck & seed demo data
+# Install WordPress, WooCommerce, Secure Custom Fields, DataDeck & demo dataset
 docker compose exec -T wpcli wp core install --url=http://localhost:8888 --title="DataDeck Dev" --admin_user=admin --admin_password=password --admin_email=admin@datadeck.local --skip-email
 docker compose exec -T wpcli wp plugin install woocommerce secure-custom-fields plugin-check --activate
 docker compose exec -T wpcli wp plugin activate datadeck
@@ -71,37 +152,26 @@ Visit `http://localhost:8888/wp-admin/admin.php?page=datadeck` (`admin` / `passw
 
 ---
 
-## Testing & Verification
+## WP-CLI &amp; Quality Verification
 
 ```bash
-# TypeScript strict check + Bundle budget gate (< 45 KB gzip)
-npm run typecheck && npm run build && npm run check:budget
-
-# PHPUnit Unit Tests + PHPCS (WPCS) + PHPStan
-docker run --rm -v "$(pwd):/app" -w /app composer:2 test:unit
-docker run --rm -v "$(pwd):/app" -w /app composer:2 lint:php
-
-# Live WordPress + WooCommerce + SCF integration & SQL SLA verification
-docker compose exec -T wpcli wp eval-file /var/www/html/wp-content/plugins/datadeck/scripts/verify-integration.php --user=admin
-
-# Build clean WordPress.org release ZIP
-node scripts/build-release-zip.mjs
-```
-
----
-
-## WP-CLI Commands
-
-```bash
+# WP-CLI automation & live query benchmarks
 wp datadeck status --user=admin
 wp datadeck benchmark product --per-page=100 --user=admin
 wp datadeck bulk product --field=sale_price --action=formula --value="if(regular_price > 0, round(regular_price * 0.85, 0) - 0.01, '')" --dry-run --user=admin
 wp datadeck rollback <batch-uuid> --user=admin
 wp datadeck sync-json --user=admin
+
+# Quality gates
+npm run typecheck && npm run build && npm run check:budget
+composer test:unit && composer lint:php
+node scripts/build-release-zip.mjs
 ```
 
 ---
 
-## License
+## Contributing &amp; License
 
-GPL-2.0-or-later — see [GNU GPL v2](https://www.gnu.org/licenses/gpl-2.0.html).
+Contributions are welcome—see [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+
+Licensed under **GPL-2.0-or-later**. Built by [Duhan Güler](https://github.com/duhanguler).

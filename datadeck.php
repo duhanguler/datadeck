@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name:       DataDeck – Admin Columns, Inline & Bulk Editor
- * Plugin URI:        https://github.com/datadeck/datadeck
+ * Plugin URI:        https://github.com/duhanguler/datadeck
  * Description:       High-performance admin columns, zero-shift inline spreadsheet editor, safe AST bulk formulas, and one-click rollback for WordPress and WooCommerce.
  * Version:           1.0.0
  * Requires at least: 6.6
  * Requires PHP:      8.1
- * Author:            DataDeck Contributors
- * Author URI:        https://github.com/datadeck/datadeck
+ * Author:            Duhan Güler
+ * Author URI:        https://github.com/duhanguler
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       datadeck
