@@ -238,7 +238,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 		};
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		if ( 'role' === $field->id ) {
 			if ( ! current_user_can( 'promote_users' ) || get_current_user_id() === $record_id ) {
 				return new WP_Error( 'datadeck_role_forbidden', __( 'Cannot change this user role.', 'datadeck' ), [ 'status' => 403 ] );

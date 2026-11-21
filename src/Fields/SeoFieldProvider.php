@@ -175,7 +175,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 		return (string) $raw;
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		$engine = $this->detect_engine();
 
 		if ( 'seo_noindex' === $field->id ) {

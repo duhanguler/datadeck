@@ -102,7 +102,7 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 		return get_post_meta( $record_id, $field->meta_key, true );
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		$meta_key = $field->meta_key;
 
 		// Enforce WordPress protected-meta security guard.

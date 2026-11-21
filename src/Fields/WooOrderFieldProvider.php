@@ -222,7 +222,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 		};
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		if ( ! function_exists( 'wc_get_order' ) ) {
 			return new WP_Error( 'datadeck_woo_inactive', __( 'WooCommerce is not active.', 'datadeck' ), [ 'status' => 400 ] );
 		}

@@ -68,5 +68,5 @@ interface FieldProviderInterface {
 	/**
 	 * Write a validated, sanitized value back to WordPress / WooCommerce / ACF CRUD.
 	 */
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error;
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error;
 }

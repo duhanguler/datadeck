@@ -46,7 +46,7 @@ final class ExpressionEngine {
 	 * @param string $expression Formula expression.
 	 * @return true|string True when valid, error message string otherwise.
 	 */
-	public function validate( string $expression ): true|string {
+	public function validate( string $expression ): bool|string {
 		try {
 			$this->compile( $expression );
 			return true;

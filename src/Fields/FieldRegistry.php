@@ -216,7 +216,7 @@ final class FieldRegistry {
 	/**
 	 * Write a single field value through its owning provider after editability check.
 	 */
-	public function write_value( string $entity_slug, int $record_id, string $field_id, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, string $field_id, mixed $value ): bool|WP_Error {
 		$field = $this->get_field( $entity_slug, $field_id );
 		if ( ! $field ) {
 			return new WP_Error( 'datadeck_unknown_field', sprintf( 'Unknown field "%s".', $field_id ), [ 'status' => 400 ] );

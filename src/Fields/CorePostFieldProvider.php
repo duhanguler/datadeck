@@ -388,7 +388,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 		};
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		if ( 'taxonomy' === $field->type && '' !== $field->taxonomy ) {
 			$term_ids = $this->normalize_term_ids( $value, $field->taxonomy );
 			$res      = wp_set_object_terms( $record_id, $term_ids, $field->taxonomy, false );

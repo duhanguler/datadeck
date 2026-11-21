@@ -199,7 +199,7 @@ final class AcfFieldProvider implements FieldProviderInterface {
 			: get_post_meta( $record_id, $field->meta_key, true );
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		$target = 'user' === $entity_slug ? 'user_' . $record_id : $record_id;
 		$key    = (string) ( $field->extra['acfKey'] ?? $field->meta_key );
 

@@ -257,7 +257,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 		};
 	}
 
-	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
+	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		if ( 'alt_text' === $field->id ) {
 			update_post_meta( $record_id, '_wp_attachment_image_alt', sanitize_text_field( (string) $value ) );
 			return true;
