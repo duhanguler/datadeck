@@ -1,0 +1,20 @@
+includes:
+  - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+  level: 8
+  paths:
+    - rowcraft.php
+    - uninstall.php
+    - src/
+  scanFiles:
+    - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+  tmpDir: .phpstan.cache
+  treatPhpDocTypesAsCertain: false
+  ignoreErrors:
+    - identifier: missingType.generics
+    - '#Function (acf_get_field_groups|acf_get_fields|get_field|update_field|rwmb_get_object_fields|wp_register_ability) not found\.#'
+    - '#Class WP_CLI not found\.#'
+    - '#Function as_schedule_single_action not found\.#'
+    - '#Function as_unschedule_all_actions not found\.#'

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1544 500" width="1544" height="500" fill="none">
+  <rect width="1544" height="500" fill="#141416"/>
+  <!-- Subtle architectural gridlines -->
+  <g stroke="#242428" stroke-width="1">
+    <line x1="0" y1="100" x2="1544" y2="100"/>
+    <line x1="0" y1="200" x2="1544" y2="200"/>
+    <line x1="0" y1="300" x2="1544" y2="300"/>
+    <line x1="0" y1="400" x2="1544" y2="400"/>
+    <line x1="860" y1="0" x2="860" y2="500"/>
+    <line x1="1060" y1="0" x2="1060" y2="500"/>
+    <line x1="1260" y1="0" x2="1260" y2="500"/>
+    <line x1="1460" y1="0" x2="1460" y2="500"/>
+  </g>
+  <!-- Left Brand Mark & Swiss Typography -->
+  <g transform="translate(96, 130)">
+    <rect width="52" height="52" rx="10" fill="#1E1E22" stroke="#3F3F46" stroke-width="2"/>
+    <rect x="11" y="13" width="30" height="26" rx="3" stroke="#FAFAFA" stroke-width="2.2"/>
+    <line x1="11" y1="22" x2="41" y2="22" stroke="#FAFAFA" stroke-width="2.2"/>
+    <line x1="11" y1="30.5" x2="41" y2="30.5" stroke="#71717A" stroke-width="1.8"/>
+    <line x1="23" y1="22" x2="23" y2="39" stroke="#71717A" stroke-width="1.8"/>
+    <rect x="25" y="23.5" width="14" height="5.5" rx="1" fill="#3858E9"/>
+    <text x="68" y="38" fill="#FAFAFA" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="38" font-weight="600" letter-spacing="-0.8">RowCraft</text>
+    <text x="2" y="102" fill="#E4E4E7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="500">Admin Columns, Inline &amp; Bulk Editor</text>
+    <text x="2" y="142" fill="#A1A1AA" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18">Zero-shift spreadsheet editing · Safe AST bulk formulas · One-click rollback</text>
+    <g transform="translate(2, 178)">
+      <rect width="148" height="32" rx="4" fill="#27272A" stroke="#3F3F46"/>
+      <text x="16" y="21" fill="#E4E4E7" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">100% Open Source</text>
+      <rect x="162" width="126" height="32" rx="4" fill="#27272A" stroke="#3F3F46"/>
+      <text x="178" y="21" fill="#E4E4E7" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">6-8 SQL/Page</text>
+      <rect x="302" width="138" height="32" rx="4" fill="#27272A" stroke="#3F3F46"/>
+      <text x="318" y="21" fill="#E4E4E7" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">0 KB Frontend</text>
+    </g>
+  </g>
+  <!-- Right Crisp Minimal Spreadsheet Wireframe -->
+  <g transform="translate(880, 96)">
+    <rect width="584" height="308" rx="8" fill="#FFFFFF" stroke="#3F3F46" stroke-width="1.5"/>
+    <rect width="584" height="40" rx="8" fill="#F8F9FA"/>
+    <line x1="0" y1="40" x2="584" y2="40" stroke="#E0E0E2"/>
+    <text x="20" y="25" fill="#1E1E1E" font-family="-apple-system, sans-serif" font-size="13" font-weight="600">Products</text>
+    <text x="116" y="25" fill="#50575E" font-family="-apple-system, sans-serif" font-size="12">Pricing &amp; SKU Audit</text>
+    <rect x="466" y="9" width="100" height="22" rx="4" fill="#3858E9"/>
+    <text x="480" y="24" fill="#FFFFFF" font-family="-apple-system, sans-serif" font-size="11.5" font-weight="600">Save (3)</text>
+    <!-- Header -->
+    <rect y="41" width="584" height="34" fill="#F8F9FA"/>
+    <line x1="0" y1="75" x2="584" y2="75" stroke="#E0E0E2"/>
+    <text x="20" y="62" fill="#50575E" font-family="-apple-system, sans-serif" font-size="11.5" font-weight="600">Title</text>
+    <text x="260" y="62" fill="#50575E" font-family="-apple-system, sans-serif" font-size="11.5" font-weight="600">SKU</text>
+    <text x="390" y="62" fill="#50575E" font-family="-apple-system, sans-serif" font-size="11.5" font-weight="600">Price</text>
+    <text x="490" y="62" fill="#50575E" font-family="-apple-system, sans-serif" font-size="11.5" font-weight="600">Stock</text>
+    <!-- Rows -->
+    <g font-family="-apple-system, sans-serif" font-size="12.5" fill="#1E1E1E">
+      <line x1="0" y1="115" x2="584" y2="115" stroke="#EBEBED"/>
+      <text x="20" y="100" font-weight="500">Keychron Q1 Pro Keyboard</text>
+      <text x="260" y="100" font-family="ui-monospace, monospace" font-size="11.5" fill="#50575E">KB-Q1PRO-01</text>
+      <rect x="372" y="76" width="96" height="39" fill="#EEF2FF" stroke="#3858E9" stroke-width="1.5"/>
+      <polygon points="461,76 468,76 468,83" fill="#3858E9"/>
+      <text x="390" y="100" font-family="ui-monospace, monospace">$179.99</text>
+      <circle cx="496" cy="96" r="3.5" fill="#1A7F37"/>
+      <text x="506" y="100">In Stock</text>
+
+      <line x1="0" y1="155" x2="584" y2="155" stroke="#EBEBED"/>
+      <text x="20" y="140" font-weight="500">Sennheiser HD 650 Open-Back</text>
+      <text x="260" y="140" font-family="ui-monospace, monospace" font-size="11.5" fill="#50575E">AU-HD650-04</text>
+      <text x="390" y="140" font-family="ui-monospace, monospace">$399.00</text>
+      <circle cx="496" cy="136" r="3.5" fill="#1A7F37"/>
+      <text x="506" y="140">In Stock</text>
+
+      <line x1="0" y1="195" x2="584" y2="195" stroke="#EBEBED"/>
+      <text x="20" y="180" font-weight="500">CalDigit TS4 Thunderbolt Dock</text>
+      <text x="260" y="180" font-family="ui-monospace, monospace" font-size="11.5" fill="#50575E">DS-TS4-09</text>
+      <text x="390" y="180" font-family="ui-monospace, monospace">$399.95</text>
+      <circle cx="496" cy="176" r="3.5" fill="#1A7F37"/>
+      <text x="506" y="180">In Stock</text>
+
+      <line x1="0" y1="235" x2="584" y2="235" stroke="#EBEBED"/>
+      <text x="20" y="220" font-weight="500">Sony MDR-7506 Studio Monitor</text>
+      <text x="260" y="220" font-family="ui-monospace, monospace" font-size="11.5" fill="#50575E">AU-MDR75-05</text>
+      <text x="390" y="220" font-family="ui-monospace, monospace">$99.99</text>
+      <circle cx="496" cy="216" r="3.5" fill="#CF222E"/>
+      <text x="506" y="220">Out of Stock</text>
+    </g>
+    <!-- Footer telemetry -->
+    <rect y="272" width="584" height="36" rx="8" fill="#F8F9FA"/>
+    <line x1="0" y1="272" x2="584" y2="272" stroke="#E0E0E2"/>
+    <text x="20" y="294" fill="#50575E" font-family="ui-monospace, monospace" font-size="11">8 SQL · 3.1ms · woo-lookup-sort</text>
+  </g>
+</svg>

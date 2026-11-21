@@ -1,0 +1,27 @@
+# Dependencies
+/node_modules/
+/vendor/
+
+# Build artifacts (generated in CI/release)
+/build/
+
+# Logs & caches
+*.log
+.phpunit.result.cache
+.phpstan.cache
+.phpcs.cache
+.DS_Store
+
+# Environment
+.env
+.env.local
+.wp-env.override.json
+
+# Test outputs
+/playwright-report/
+/test-results/
+/coverage/
+
+# Packaging
+/dist/
+*.zip

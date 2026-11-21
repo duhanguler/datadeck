@@ -1,0 +1,39 @@
+{
+  "name": "rowcraft",
+  "version": "1.0.0",
+  "description": "Modern admin columns, zero-shift inline editor, AST bulk formula engine, and one-click rollback for WordPress & WooCommerce.",
+  "license": "GPL-2.0-or-later",
+  "private": true,
+  "scripts": {
+    "start": "wp-scripts start",
+    "build": "wp-scripts build",
+    "typecheck": "tsc --noEmit",
+    "lint:js": "wp-scripts lint-js ui",
+    "lint:css": "wp-scripts lint-style \"ui/**/*.css\"",
+    "check:budget": "node scripts/check-bundle-budget.mjs",
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:clean": "wp-env clean all",
+    "env:seed": "wp-env run cli wp eval-file /var/www/html/wp-content/plugins/rowcraft/scripts/seed-demo-data.php",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.13.0",
+    "@wordpress/dataviews": "^22.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@wordpress/api-fetch": "latest",
+    "@wordpress/components": "latest",
+    "@wordpress/data": "latest",
+    "@wordpress/element": "latest",
+    "@wordpress/env": "^12.2.0",
+    "@wordpress/i18n": "latest",
+    "@wordpress/icons": "^21.0.0",
+    "@wordpress/scripts": "^37.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.3"
+  }
+}

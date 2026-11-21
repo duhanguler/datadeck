@@ -1,0 +1,299 @@
+import apiFetch from '@wordpress/api-fetch';
+import type {
+	BulkChunkResponse,
+	BulkRule,
+	DensityMode,
+	DryRunResponse,
+	EntitySchemaResponse,
+	FilterClause,
+	HistoryBatch,
+	HistoryDetail,
+	RecordRow,
+	RecordsResponse,
+	SaveMode,
+	SavedView,
+} from '../types';
+
+const REST_PREFIX = '/rowcraft/v1/';
+
+let activeQueryController: AbortController | null = null;
+
+function buildQueryString( params: Record<string, unknown> ): string {
+	const search = new URLSearchParams();
+	Object.entries( params ).forEach( ( [ key, value ] ) => {
+		if ( value === undefined || value === null || value === '' ) {
+			return;
+		}
+		if ( Array.isArray( value ) ) {
+			if ( key === 'fields' ) {
+				if ( value.length > 0 ) {
+					search.set( key, value.join( ',' ) );
+				}
+			} else if ( value.length > 0 ) {
+				search.set( key, JSON.stringify( value ) );
+			}
+			return;
+		}
+		search.set( key, String( value ) );
+	} );
+	const str = search.toString();
+	return str ? `?${ str }` : '';
+}
+
+export async function fetchSchema( entity: string ): Promise<EntitySchemaResponse> {
+	return apiFetch<EntitySchemaResponse>( {
+		path: `${ REST_PREFIX }schema/${ encodeURIComponent( entity ) }`,
+	} );
+}
+
+export interface RecordsQueryParams {
+	page: number;
+	per_page: number;
+	search?: string;
+	sort_field?: string;
+	sort_direction?: 'asc' | 'desc';
+	filters?: FilterClause[];
+	filter_relation?: 'AND' | 'OR';
+	fields?: string[];
+	lens?: string;
+	parent_id?: number;
+	flatten_variations?: boolean;
+}
+
+export async function fetchRecords(
+	entity: string,
+	params: RecordsQueryParams,
+	abortPrevious = true
+): Promise<RecordsResponse> {
+	let signal: AbortSignal | undefined;
+	if ( abortPrevious ) {
+		if ( activeQueryController ) {
+			activeQueryController.abort();
+		}
+		activeQueryController = new AbortController();
+		signal = activeQueryController.signal;
+	}
+
+	const qs = buildQueryString( {
+		page: params.page,
+		per_page: params.per_page,
+		search: params.search,
+		sort_field: params.sort_field,
+		sort_direction: params.sort_direction,
+		filters: params.filters?.filter( ( f ) => f.field && f.operator ),
+		filter_relation: params.filter_relation,
+		fields: params.fields,
+		lens: params.lens && params.lens !== 'all' ? params.lens : undefined,
+		parent_id: params.parent_id && params.parent_id > 0 ? params.parent_id : undefined,
+		flatten_variations: params.flatten_variations ? 1 : undefined,
+	} );
+
+	return apiFetch<RecordsResponse>( {
+		path: `${ REST_PREFIX }records/${ encodeURIComponent( entity ) }${ qs }`,
+		signal,
+	} );
+}
+
+export async function createRecord(
+	entity: string,
+	data: Record<string, unknown>
+): Promise<{ id: number; record: RecordRow }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }records/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data,
+	} );
+}
+
+export async function duplicateRecord(
+	entity: string,
+	id: number
+): Promise<{ id: number; record: RecordRow }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }records/${ encodeURIComponent( entity ) }/${ id }/duplicate`,
+		method: 'POST',
+	} );
+}
+
+export async function deleteRecords(
+	entity: string,
+	ids: number[]
+): Promise<{ deleted: number[]; errors: Array<{ id: number; message: string }> }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }records/${ encodeURIComponent( entity ) }`,
+		method: 'DELETE',
+		data: { ids },
+	} );
+}
+
+export async function commitEdits(
+	entity: string,
+	edits: Array<{ id: number; field: string; value: unknown }>,
+	mode: 'inline' | 'paste' = 'inline'
+): Promise<{
+	updated: number;
+	errors: Array<{ id: number; field: string; message: string }>;
+	batchUuid: string;
+}> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }batch/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data: { mode, edits },
+	} );
+}
+
+export async function dryRunBulk(
+	entity: string,
+	rule: BulkRule,
+	ids: number[],
+	query: RecordsQueryParams
+): Promise<DryRunResponse> {
+	return apiFetch<DryRunResponse>( {
+		path: `${ REST_PREFIX }batch/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data: {
+			mode: 'dry_run',
+			rule,
+			ids,
+			query,
+		},
+	} );
+}
+
+export async function executeBulkChunk(
+	entity: string,
+	payload: {
+		rule: BulkRule;
+		ids: number[];
+		query: RecordsQueryParams;
+		afterId: number;
+		chunkSize: number;
+		batchUuid?: string;
+		revertAt?: string;
+	}
+): Promise<BulkChunkResponse> {
+	return apiFetch<BulkChunkResponse>( {
+		path: `${ REST_PREFIX }batch/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data: {
+			mode: 'bulk',
+			...payload,
+		},
+	} );
+}
+
+export async function validateFormula(
+	expression: string
+): Promise<{ valid: boolean; error: string | null }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }formula/validate`,
+		method: 'POST',
+		data: { expression },
+	} );
+}
+
+export async function scheduleCampaign(
+	entity: string,
+	payload: {
+		name: string;
+		rule: BulkRule;
+		ids: number[];
+		query: RecordsQueryParams;
+		scheduledAt: string;
+		revertAt?: string;
+	}
+): Promise<{ uuid: string; status: string; scheduledAt: string; revertAt: string | null }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }schedules/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data: payload,
+	} );
+}
+
+export async function cancelSchedule( uuid: string ): Promise<{ cancelled: boolean }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }schedules/${ encodeURIComponent( uuid ) }`,
+		method: 'DELETE',
+	} );
+}
+
+export async function fetchHistory( entity?: string ): Promise<{ batches: HistoryBatch[] }> {
+	const qs = buildQueryString( { entity, limit: 40 } );
+	return apiFetch( {
+		path: `${ REST_PREFIX }history${ qs }`,
+	} );
+}
+
+export async function fetchHistoryDetail( uuid: string ): Promise<HistoryDetail> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }history/${ encodeURIComponent( uuid ) }`,
+	} );
+}
+
+export async function rollbackBatch(
+	uuid: string
+): Promise<{ restored: number; errors: unknown[]; rollbackUuid: string }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }history/${ encodeURIComponent( uuid ) }/rollback`,
+		method: 'POST',
+	} );
+}
+
+export async function saveView(
+	entity: string,
+	view: Partial<SavedView>
+): Promise<{ view: SavedView }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }views/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data: view,
+	} );
+}
+
+export async function deleteView( id: string ): Promise<{ deleted: boolean }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }views/${ encodeURIComponent( id ) }`,
+		method: 'DELETE',
+	} );
+}
+
+export async function syncViewsFromJson(): Promise<{ synced: number }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }views/sync-json`,
+		method: 'POST',
+	} );
+}
+
+export async function savePreferences( prefs: {
+	density?: DensityMode;
+	saveMode?: SaveMode;
+	defaultForEntity?: Record<string, boolean>;
+} ): Promise<void> {
+	await apiFetch( {
+		path: `${ REST_PREFIX }preferences`,
+		method: 'POST',
+		data: prefs,
+	} );
+}
+
+export function buildExportUrl(
+	entity: string,
+	params: RecordsQueryParams,
+	format: 'csv' | 'json'
+): string {
+	const root = window.rowcraftBootstrap?.restRoot || '/wp-json/rowcraft/v1/';
+	const nonce = window.rowcraftBootstrap?.nonce || '';
+	const qs = buildQueryString( {
+		format,
+		_wpnonce: nonce,
+		search: params.search,
+		sort_field: params.sort_field,
+		sort_direction: params.sort_direction,
+		filters: params.filters?.filter( ( f ) => f.field && f.operator ),
+		filter_relation: params.filter_relation,
+		fields: params.fields,
+		lens: params.lens && params.lens !== 'all' ? params.lens : undefined,
+		flatten_variations: params.flatten_variations ? 1 : undefined,
+	} );
+	return `${ root }export/${ encodeURIComponent( entity ) }${ qs }`;
+}

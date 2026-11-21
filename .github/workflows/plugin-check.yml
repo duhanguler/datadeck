@@ -1,0 +1,24 @@
+name: WordPress Plugin Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  plugin-check:
+    name: Official WordPress Plugin Check (PCP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/build-release-zip.mjs
+      - name: Run WordPress Plugin Check
+        uses: WordPress/plugin-check-action@v1
+        with:
+          plugin-dir: dist/rowcraft
