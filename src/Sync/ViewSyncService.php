@@ -1,17 +1,17 @@
 <?php
 /**
- * Saved Views & Git-Syncable Local JSON (`rowcraft-json/`) Service.
+ * Saved Views & Git-Syncable Local JSON (`datadeck-json/`) Service.
  *
- * Mirrors the beloved acf-json workflow: when an active theme contains a `rowcraft-json/`
+ * Mirrors the beloved acf-json workflow: when an active theme contains a `datadeck-json/`
  * folder (or custom filter path), saved column presets & filter views automatically sync
  * to clean, version-controllable JSON files.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Sync;
+namespace DataDeck\Sync;
 
 use WP_Error;
 
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class ViewSyncService {
 
-	private const OPTION_KEY = 'rowcraft_views';
+	private const OPTION_KEY = 'datadeck_views';
 
 	/**
 	 * Return all saved views for an entity visible to the current user.
@@ -49,7 +49,7 @@ final class ViewSyncService {
 	}
 
 	/**
-	 * Create or update a Saved View and optionally mirror it to rowcraft-json/.
+	 * Create or update a Saved View and optionally mirror it to datadeck-json/.
 	 *
 	 * @param string               $entity_slug Entity slug.
 	 * @param array<string, mixed> $payload     View configuration.
@@ -58,7 +58,7 @@ final class ViewSyncService {
 	public function save_view( string $entity_slug, array $payload ): array|WP_Error {
 		$name = sanitize_text_field( (string) ( $payload['name'] ?? '' ) );
 		if ( '' === $name ) {
-			return new WP_Error( 'rowcraft_view_name', __( 'View name is required.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_view_name', __( 'View name is required.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$id   = ! empty( $payload['id'] ) ? sanitize_key( (string) $payload['id'] ) : sanitize_title( $entity_slug . '-' . $name . '-' . substr( wp_generate_uuid4(), 0, 6 ) );
@@ -121,7 +121,7 @@ final class ViewSyncService {
 	}
 
 	/**
-	 * Inspect local rowcraft-json/ directories and report syncable JSON view files.
+	 * Inspect local datadeck-json/ directories and report syncable JSON view files.
 	 *
 	 * @return array{enabled: bool, savePath: string, syncAvailable: array<int, array<string, mixed>>}
 	 */
@@ -163,7 +163,7 @@ final class ViewSyncService {
 	}
 
 	/**
-	 * Import all out-of-sync views from rowcraft-json/ into the database.
+	 * Import all out-of-sync views from datadeck-json/ into the database.
 	 *
 	 * @return array{synced: int}
 	 */
@@ -194,8 +194,8 @@ final class ViewSyncService {
 	}
 
 	private function get_save_path(): string {
-		$default = trailingslashit( get_stylesheet_directory() ) . 'rowcraft-json';
-		$path    = (string) apply_filters( 'rowcraft_json_save_path', $default );
+		$default = trailingslashit( get_stylesheet_directory() ) . 'datadeck-json';
+		$path    = (string) apply_filters( 'datadeck_json_save_path', $default );
 		return untrailingslashit( $path );
 	}
 
@@ -204,12 +204,12 @@ final class ViewSyncService {
 	 */
 	private function get_load_paths(): array {
 		$paths    = [ $this->get_save_path() ];
-		$filtered = apply_filters( 'rowcraft_json_load_paths', $paths );
+		$filtered = apply_filters( 'datadeck_json_load_paths', $paths );
 		return is_array( $filtered ) ? array_values( array_unique( array_map( 'strval', $filtered ) ) ) : $paths;
 	}
 
 	/**
-	 * Write a pretty-printed JSON view snapshot when rowcraft-json/ exists and is writable.
+	 * Write a pretty-printed JSON view snapshot when datadeck-json/ exists and is writable.
 	 *
 	 * @param array<string, mixed> $view View array.
 	 */

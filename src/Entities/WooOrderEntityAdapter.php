@@ -2,17 +2,17 @@
 /**
  * WooCommerce HPOS-Native Order Entity Adapter.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Entities;
+namespace DataDeck\Entities;
 
-use RowCraft\Contracts\EntityAdapterInterface;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Query\QueryResult;
+use DataDeck\Contracts\EntityAdapterInterface;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Query\QueryResult;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -30,11 +30,11 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function get_label(): string {
-		return __( 'Order', 'rowcraft' );
+		return __( 'Order', 'datadeck' );
 	}
 
 	public function get_plural_label(): string {
-		return __( 'Orders', 'rowcraft' );
+		return __( 'Orders', 'datadeck' );
 	}
 
 	public function get_group(): string {
@@ -164,11 +164,11 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function create_record( array $data ): int|WP_Error {
-		return new WP_Error( 'rowcraft_unsupported', __( 'Orders are created via WooCommerce.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_unsupported', __( 'Orders are created via WooCommerce.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
 	public function duplicate_record( int $record_id ): int|WP_Error {
-		return new WP_Error( 'rowcraft_unsupported', __( 'Orders cannot be duplicated inline.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_unsupported', __( 'Orders cannot be duplicated inline.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
 	public function delete_records( array $ids ): array {
@@ -179,7 +179,7 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 			if ( ! $order instanceof \WC_Order ) {
 				$errors[] = [
 					'id'      => (int) $id,
-					'message' => __( 'Order not found.', 'rowcraft' ),
+					'message' => __( 'Order not found.', 'datadeck' ),
 				];
 				continue;
 			}

@@ -44,7 +44,7 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 		setErrorMsg( null );
 		try {
 			const res = await rollbackBatch( uuid );
-			onRolledBack( `${ res.restored } ${ __( 'records restored from snapshot', 'rowcraft' ) }` );
+			onRolledBack( `${ res.restored } ${ __( 'records restored from snapshot', 'datadeck' ) }` );
 			reload();
 		} catch ( err ) {
 			setErrorMsg( err instanceof Error ? err.message : 'Rollback failed' );
@@ -67,9 +67,9 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 		<div className="rc-backdrop rc-backdrop--drawer" onClick={ onClose }>
 			<div className="rc-drawer" onClick={ ( e ) => e.stopPropagation() } role="dialog" aria-modal="true">
 				<div className="rc-modal-header">
-					<h2>{ __( 'Change History & Rollback', 'rowcraft' ) }</h2>
+					<h2>{ __( 'Change History & Rollback', 'datadeck' ) }</h2>
 					<button type="button" className="rc-btn rc-btn--ghost" onClick={ onClose }>
-						{ __( 'Close', 'rowcraft' ) }
+						{ __( 'Close', 'datadeck' ) }
 					</button>
 				</div>
 
@@ -82,11 +82,11 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 
 					{ loading ? (
 						<div style={ { fontSize: '12.5px', color: 'var(--rc-ink-muted)' } }>
-							{ __( 'Loading audit snapshots…', 'rowcraft' ) }
+							{ __( 'Loading audit snapshots…', 'datadeck' ) }
 						</div>
 					) : batches.length === 0 ? (
 						<div className="rc-empty-state" style={ { height: '180px' } }>
-							<span>{ __( 'No changes recorded for this entity yet.', 'rowcraft' ) }</span>
+							<span>{ __( 'No changes recorded for this entity yet.', 'datadeck' ) }</span>
 						</div>
 					) : (
 						batches.map( ( batch ) => (
@@ -118,7 +118,7 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 
 								<div style={ { display: 'flex', gap: '6px' } }>
 									<button type="button" className="rc-btn" onClick={ () => handleInspect( batch.uuid ) }>
-										{ detail?.uuid === batch.uuid ? __( 'Hide Diff', 'rowcraft' ) : __( 'View Diff', 'rowcraft' ) }
+										{ detail?.uuid === batch.uuid ? __( 'Hide Diff', 'datadeck' ) : __( 'View Diff', 'datadeck' ) }
 									</button>
 									{ batch.status === 'applied' && (
 										<button
@@ -127,7 +127,7 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 											disabled={ busyUuid === batch.uuid }
 											onClick={ () => handleRollback( batch.uuid ) }
 										>
-											{ busyUuid === batch.uuid ? __( 'Restoring…', 'rowcraft' ) : __( 'One-Click Rollback', 'rowcraft' ) }
+											{ busyUuid === batch.uuid ? __( 'Restoring…', 'datadeck' ) : __( 'One-Click Rollback', 'datadeck' ) }
 										</button>
 									) }
 									{ batch.status === 'scheduled' && (
@@ -137,7 +137,7 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 											disabled={ busyUuid === batch.uuid }
 											onClick={ () => handleCancelSchedule( batch.uuid ) }
 										>
-											{ __( 'Cancel Schedule', 'rowcraft' ) }
+											{ __( 'Cancel Schedule', 'datadeck' ) }
 										</button>
 									) }
 								</div>
@@ -147,9 +147,9 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 										<thead>
 											<tr>
 												<th>ID</th>
-												<th>{ __( 'Field', 'rowcraft' ) }</th>
-												<th>{ __( 'Old', 'rowcraft' ) }</th>
-												<th>{ __( 'New', 'rowcraft' ) }</th>
+												<th>{ __( 'Field', 'datadeck' ) }</th>
+												<th>{ __( 'Old', 'datadeck' ) }</th>
+												<th>{ __( 'New', 'datadeck' ) }</th>
 											</tr>
 										</thead>
 										<tbody>

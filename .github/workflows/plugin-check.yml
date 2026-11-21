@@ -21,4 +21,4 @@ jobs:
       - name: Run WordPress Plugin Check
         uses: WordPress/plugin-check-action@v1
         with:
-          plugin-dir: dist/rowcraft
+          plugin-dir: dist/datadeck

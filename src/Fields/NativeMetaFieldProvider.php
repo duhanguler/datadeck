@@ -2,15 +2,15 @@
 /**
  * Native WordPress Custom Meta Field Provider with safe auto-discovery & protection guards.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -108,7 +108,7 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 		// Enforce WordPress protected-meta security guard.
 		$meta_type = 'user' === $entity_slug ? 'user' : 'post';
 		if ( is_protected_meta( $meta_key, $meta_type ) && ! current_user_can( 'manage_options' ) ) {
-			return new WP_Error( 'rowcraft_protected_meta', __( 'You do not have permission to edit protected metadata.', 'rowcraft' ), [ 'status' => 403 ] );
+			return new WP_Error( 'datadeck_protected_meta', __( 'You do not have permission to edit protected metadata.', 'datadeck' ), [ 'status' => 403 ] );
 		}
 
 		$clean = match ( $field->type ) {
@@ -140,7 +140,7 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 		// 1. Explicitly registered WordPress meta keys.
 		$registered = get_registered_meta_keys( $object_type, 'user' === $entity_slug ? '' : $entity_slug );
 		foreach ( $registered as $key => $args ) {
-			if ( str_starts_with( $key, '_' ) || str_starts_with( $key, 'rowcraft_' ) ) {
+			if ( str_starts_with( $key, '_' ) || str_starts_with( $key, 'datadeck_' ) ) {
 				continue;
 			}
 			$discovered[ $key ] = [
@@ -155,7 +155,7 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 
 		// 2. Non-protected public postmeta keys cached briefly to avoid repeated DISTINCT scans on hot paths.
 		if ( 'post' === $object_type ) {
-			$cache_key = 'rowcraft_meta_keys_' . $entity_slug;
+			$cache_key = 'datadeck_meta_keys_' . $entity_slug;
 			$keys      = get_transient( $cache_key );
 			if ( ! is_array( $keys ) ) {
 				global $wpdb;
@@ -186,7 +186,7 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 					if ( isset( $discovered[ $key ] ) || isset( $acf_names[ $key ] ) ) {
 						continue;
 					}
-					if ( str_starts_with( $key, 'rank_math_' ) || str_starts_with( $key, 'yoast_' ) || str_starts_with( $key, 'rowcraft_' ) ) {
+					if ( str_starts_with( $key, 'rank_math_' ) || str_starts_with( $key, 'yoast_' ) || str_starts_with( $key, 'datadeck_' ) ) {
 						continue;
 					}
 					$discovered[ $key ] = [ 'type' => 'text' ];

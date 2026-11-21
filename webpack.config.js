@@ -4,8 +4,8 @@ const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 module.exports = {
 	...defaultConfig,
 	entry: {
-		'rowcraft-app': path.resolve( __dirname, 'ui/index.tsx' ),
-		'rowcraft-toggle': path.resolve( __dirname, 'ui/toggle.ts' ),
+		'datadeck-app': path.resolve( __dirname, 'ui/index.tsx' ),
+		'datadeck-toggle': path.resolve( __dirname, 'ui/toggle.ts' ),
 	},
 	output: {
 		...defaultConfig.output,
@@ -17,7 +17,7 @@ module.exports = {
 		...defaultConfig.resolve,
 		alias: {
 			...( defaultConfig.resolve?.alias || {} ),
-			'@rowcraft': path.resolve( __dirname, 'ui' ),
+			'@datadeck': path.resolve( __dirname, 'ui' ),
 		},
 	},
 };

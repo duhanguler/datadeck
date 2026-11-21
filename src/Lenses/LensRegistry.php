@@ -2,12 +2,12 @@
 /**
  * Built-in Zero-Setup Smart Audit Lenses (SEO, WooCommerce Margin/Inventory, Media Alt Hygiene).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Lenses;
+namespace DataDeck\Lenses;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -25,26 +25,26 @@ final class LensRegistry {
 			return [
 				[
 					'id'          => 'all',
-					'label'       => __( 'All Products', 'rowcraft' ),
-					'description' => __( 'Complete product catalog.', 'rowcraft' ),
+					'label'       => __( 'All Products', 'datadeck' ),
+					'description' => __( 'Complete product catalog.', 'datadeck' ),
 					'columns'     => [ 'title', 'featured_image', 'id', 'sku', 'regular_price', 'sale_price', 'stock_status', 'stock_quantity', 'product_cat', 'status' ],
 				],
 				[
 					'id'          => 'woo_margin_audit',
-					'label'       => __( 'Pricing & SKU Audit', 'rowcraft' ),
-					'description' => __( 'Products missing prices, missing SKUs, or with sale price >= regular price.', 'rowcraft' ),
+					'label'       => __( 'Pricing & SKU Audit', 'datadeck' ),
+					'description' => __( 'Products missing prices, missing SKUs, or with sale price >= regular price.', 'datadeck' ),
 					'columns'     => [ 'title', 'id', 'sku', 'regular_price', 'sale_price', 'status' ],
 				],
 				[
 					'id'          => 'woo_inventory_risk',
-					'label'       => __( 'Inventory Risk', 'rowcraft' ),
-					'description' => __( 'Out-of-stock or low-stock (<= 5) products.', 'rowcraft' ),
+					'label'       => __( 'Inventory Risk', 'datadeck' ),
+					'description' => __( 'Out-of-stock or low-stock (<= 5) products.', 'datadeck' ),
 					'columns'     => [ 'title', 'id', 'sku', 'stock_status', 'stock_quantity', 'manage_stock', 'regular_price' ],
 				],
 				[
 					'id'          => 'woo_missing_media',
-					'label'       => __( 'Missing Images', 'rowcraft' ),
-					'description' => __( 'Products without a featured image.', 'rowcraft' ),
+					'label'       => __( 'Missing Images', 'datadeck' ),
+					'description' => __( 'Products without a featured image.', 'datadeck' ),
 					'columns'     => [ 'title', 'featured_image', 'id', 'sku', 'status' ],
 				],
 			];
@@ -54,14 +54,14 @@ final class LensRegistry {
 			return [
 				[
 					'id'          => 'all',
-					'label'       => __( 'All Media', 'rowcraft' ),
-					'description' => __( 'All uploaded files.', 'rowcraft' ),
+					'label'       => __( 'All Media', 'datadeck' ),
+					'description' => __( 'All uploaded files.', 'datadeck' ),
 					'columns'     => [ 'title', 'preview', 'id', 'alt_text', 'caption', 'mime', 'dimensions', 'file_size_kb', 'date' ],
 				],
 				[
 					'id'          => 'media_missing_alt',
-					'label'       => __( 'Missing Alt Text', 'rowcraft' ),
-					'description' => __( 'Images missing accessibility alt text.', 'rowcraft' ),
+					'label'       => __( 'Missing Alt Text', 'datadeck' ),
+					'description' => __( 'Images missing accessibility alt text.', 'datadeck' ),
 					'columns'     => [ 'title', 'preview', 'id', 'alt_text', 'caption', 'dimensions' ],
 				],
 			];
@@ -71,8 +71,8 @@ final class LensRegistry {
 			return [
 				[
 					'id'          => 'all',
-					'label'       => __( 'All Records', 'rowcraft' ),
-					'description' => __( 'Default list view.', 'rowcraft' ),
+					'label'       => __( 'All Records', 'datadeck' ),
+					'description' => __( 'Default list view.', 'datadeck' ),
 					'columns'     => [],
 				],
 			];
@@ -81,20 +81,20 @@ final class LensRegistry {
 		return [
 			[
 				'id'          => 'all',
-				'label'       => __( 'All Items', 'rowcraft' ),
-				'description' => __( 'Complete list.', 'rowcraft' ),
+				'label'       => __( 'All Items', 'datadeck' ),
+				'description' => __( 'Complete list.', 'datadeck' ),
 				'columns'     => [],
 			],
 			[
 				'id'          => 'seo_audit',
-				'label'       => __( 'SEO Audit', 'rowcraft' ),
-				'description' => __( 'Long titles (> 60 chars), missing featured images, or empty excerpts.', 'rowcraft' ),
+				'label'       => __( 'SEO Audit', 'datadeck' ),
+				'description' => __( 'Long titles (> 60 chars), missing featured images, or empty excerpts.', 'datadeck' ),
 				'columns'     => [ 'title', 'featured_image', 'id', 'slug', 'seo_title', 'seo_description', 'seo_focus_kw', 'status' ],
 			],
 			[
 				'id'          => 'content_hygiene',
-				'label'       => __( 'Content Hygiene', 'rowcraft' ),
-				'description' => __( 'Drafts, pending items, or posts missing excerpts.', 'rowcraft' ),
+				'label'       => __( 'Content Hygiene', 'datadeck' ),
+				'description' => __( 'Drafts, pending items, or posts missing excerpts.', 'datadeck' ),
 				'columns'     => [ 'title', 'id', 'status', 'author', 'excerpt', 'word_count', 'date' ],
 			],
 		];

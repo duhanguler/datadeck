@@ -2,16 +2,16 @@
 /**
  * ACF (Advanced Custom Fields) & SCF (Secure Custom Fields) Zero-Paywall Field Provider.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -229,7 +229,7 @@ final class AcfFieldProvider implements FieldProviderInterface {
 	}
 
 	/**
-	 * Map ACF field type to RowCraft FieldDefinition type.
+	 * Map ACF field type to DataDeck FieldDefinition type.
 	 */
 	private function map_acf_type( string $acf_type ): ?string {
 		return match ( $acf_type ) {

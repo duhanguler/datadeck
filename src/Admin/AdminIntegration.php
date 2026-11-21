@@ -1,20 +1,20 @@
 <?php
 /**
- * Admin UI Integration — Dedicated RowCraft Workspace + Conditional Inline Toggle on Core Lists.
+ * Admin UI Integration — Dedicated DataDeck Workspace + Conditional Inline Toggle on Core Lists.
  *
  * Strict Asset Isolation Guarantee:
  *  - 0 bytes loaded on public frontend.
  *  - 0 bytes loaded on unrelated wp-admin screens.
- *  - Full app bundle ONLY enqueued on RowCraft workspace or when RowCraft View is active.
+ *  - Full app bundle ONLY enqueued on DataDeck workspace or when DataDeck View is active.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Admin;
+namespace DataDeck\Admin;
 
-use RowCraft\Entities\EntityRegistry;
+use DataDeck\Entities\EntityRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class AdminIntegration {
 
-	public const MENU_SLUG = 'rowcraft';
+	public const MENU_SLUG = 'datadeck';
 
 	public function __construct(
 		private readonly EntityRegistry $entities,
@@ -46,8 +46,8 @@ final class AdminIntegration {
 		);
 
 		add_menu_page(
-			__( 'RowCraft', 'rowcraft' ),
-			__( 'RowCraft', 'rowcraft' ),
+			__( 'DataDeck', 'datadeck' ),
+			__( 'DataDeck', 'datadeck' ),
 			'edit_posts',
 			self::MENU_SLUG,
 			[ $this, 'render_workspace_page' ],
@@ -57,19 +57,19 @@ final class AdminIntegration {
 	}
 
 	/**
-	 * Render the full-bleed RowCraft workspace container.
+	 * Render the full-bleed DataDeck workspace container.
 	 */
 	public function render_workspace_page(): void {
-		echo '<div id="rowcraft-root" class="rowcraft-root" role="application" aria-label="' . esc_attr__( 'RowCraft Data Workspace', 'rowcraft' ) . '"></div>';
+		echo '<div id="datadeck-root" class="datadeck-root" role="application" aria-label="' . esc_attr__( 'DataDeck Data Workspace', 'datadeck' ) . '"></div>';
 	}
 
 	/**
-	 * Add full-bleed body class on the RowCraft workspace screen.
+	 * Add full-bleed body class on the DataDeck workspace screen.
 	 */
 	public function add_body_class( string $classes ): string {
 		$screen = get_current_screen();
 		if ( $screen && 'toplevel_page_' . self::MENU_SLUG === $screen->id ) {
-			$classes .= ' rowcraft-fullscreen-admin';
+			$classes .= ' datadeck-fullscreen-admin';
 		}
 		return $classes;
 	}
@@ -78,7 +78,7 @@ final class AdminIntegration {
 	 * Conditionally enqueue ONLY the exact assets required by the current admin screen.
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-		// 1. Dedicated RowCraft Workspace screen.
+		// 1. Dedicated DataDeck Workspace screen.
 		if ( 'toplevel_page_' . self::MENU_SLUG === $hook_suffix ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$requested = isset( $_GET['entity'] ) ? sanitize_key( wp_unslash( $_GET['entity'] ) ) : '';
@@ -92,30 +92,30 @@ final class AdminIntegration {
 			return;
 		}
 
-		$toggle_asset_file = ROWCRAFT_DIR . 'build/rowcraft-toggle.asset.php';
+		$toggle_asset_file = DATADECK_DIR . 'build/datadeck-toggle.asset.php';
 		$toggle_asset      = is_readable( $toggle_asset_file )
 			? require $toggle_asset_file
 			: [
 				'dependencies' => [],
-				'version'      => ROWCRAFT_VERSION,
+				'version'      => DATADECK_VERSION,
 			];
 
 		wp_enqueue_script(
-			'rowcraft-toggle',
-			ROWCRAFT_URL . 'build/rowcraft-toggle.js',
+			'datadeck-toggle',
+			DATADECK_URL . 'build/datadeck-toggle.js',
 			$toggle_asset['dependencies'],
 			$toggle_asset['version'],
 			true
 		);
 
 		wp_add_inline_script(
-			'rowcraft-toggle',
-			'window.rowcraftToggle = ' . wp_json_encode(
+			'datadeck-toggle',
+			'window.datadeckToggle = ' . wp_json_encode(
 				[
 					'entity'       => $mapped_entity,
 					'workspaceUrl' => admin_url( 'admin.php?page=' . self::MENU_SLUG . '&entity=' . rawurlencode( $mapped_entity ) ),
-					'classicLabel' => __( 'Classic List', 'rowcraft' ),
-					'modernLabel'  => __( 'RowCraft Grid', 'rowcraft' ),
+					'classicLabel' => __( 'Classic List', 'datadeck' ),
+					'modernLabel'  => __( 'DataDeck Grid', 'datadeck' ),
 				]
 			) . ';',
 			'before'
@@ -123,15 +123,15 @@ final class AdminIntegration {
 	}
 
 	/**
-	 * Enqueue the main RowCraft React application on the workspace screen.
+	 * Enqueue the main DataDeck React application on the workspace screen.
 	 */
 	private function enqueue_full_workspace( string $initial_entity ): void {
-		$asset_file = ROWCRAFT_DIR . 'build/rowcraft-app.asset.php';
+		$asset_file = DATADECK_DIR . 'build/datadeck-app.asset.php';
 		$asset      = is_readable( $asset_file )
 			? require $asset_file
 			: [
 				'dependencies' => [ 'wp-element', 'wp-api-fetch', 'wp-data', 'wp-i18n', 'wp-components' ],
-				'version'      => ROWCRAFT_VERSION,
+				'version'      => DATADECK_VERSION,
 			];
 
 		// Load WordPress media modal ONLY for image field editing on workspace.
@@ -139,26 +139,26 @@ final class AdminIntegration {
 
 		wp_enqueue_style( 'wp-components' );
 
-		if ( file_exists( ROWCRAFT_DIR . 'build/rowcraft-app.css' ) ) {
+		if ( file_exists( DATADECK_DIR . 'build/datadeck-app.css' ) ) {
 			wp_enqueue_style(
-				'rowcraft-app',
-				ROWCRAFT_URL . 'build/rowcraft-app.css',
+				'datadeck-app',
+				DATADECK_URL . 'build/datadeck-app.css',
 				[ 'wp-components' ],
-				(string) filemtime( ROWCRAFT_DIR . 'build/rowcraft-app.css' )
+				(string) filemtime( DATADECK_DIR . 'build/datadeck-app.css' )
 			);
 		}
-		if ( file_exists( ROWCRAFT_DIR . 'build/style-rowcraft-app.css' ) ) {
+		if ( file_exists( DATADECK_DIR . 'build/style-datadeck-app.css' ) ) {
 			wp_enqueue_style(
-				'rowcraft-app-style',
-				ROWCRAFT_URL . 'build/style-rowcraft-app.css',
+				'datadeck-app-style',
+				DATADECK_URL . 'build/style-datadeck-app.css',
 				[ 'wp-components' ],
-				(string) filemtime( ROWCRAFT_DIR . 'build/style-rowcraft-app.css' )
+				(string) filemtime( DATADECK_DIR . 'build/style-datadeck-app.css' )
 			);
 		}
 
 		wp_enqueue_script(
-			'rowcraft-app',
-			ROWCRAFT_URL . 'build/rowcraft-app.js',
+			'datadeck-app',
+			DATADECK_URL . 'build/datadeck-app.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
@@ -170,12 +170,12 @@ final class AdminIntegration {
 			$initial_entity = in_array( 'product', $slugs, true ) ? 'product' : ( $slugs[0] ?? 'post' );
 		}
 
-		$user_prefs = get_user_meta( get_current_user_id(), 'rowcraft_preferences', true );
+		$user_prefs = get_user_meta( get_current_user_id(), 'datadeck_preferences', true );
 		$prefs      = is_array( $user_prefs ) ? $user_prefs : [];
 
 		$bootstrap = [
-			'version'       => ROWCRAFT_VERSION,
-			'restRoot'      => esc_url_raw( rest_url( 'rowcraft/v1/' ) ),
+			'version'       => DATADECK_VERSION,
+			'restRoot'      => esc_url_raw( rest_url( 'datadeck/v1/' ) ),
 			'nonce'         => wp_create_nonce( 'wp_rest' ),
 			'adminUrl'      => admin_url(),
 			'initialEntity' => $initial_entity,
@@ -191,14 +191,14 @@ final class AdminIntegration {
 		];
 
 		wp_add_inline_script(
-			'rowcraft-app',
-			'window.rowcraftBootstrap = ' . wp_json_encode( $bootstrap ) . ';',
+			'datadeck-app',
+			'window.datadeckBootstrap = ' . wp_json_encode( $bootstrap ) . ';',
 			'before'
 		);
 	}
 
 	/**
-	 * Map a core wp-admin list screen hook to its corresponding RowCraft entity slug.
+	 * Map a core wp-admin list screen hook to its corresponding DataDeck entity slug.
 	 */
 	private function resolve_native_screen_entity( string $hook_suffix ): ?string {
 		$screen = get_current_screen();

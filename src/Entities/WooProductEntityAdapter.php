@@ -2,17 +2,17 @@
 /**
  * WooCommerce Product Entity Adapter with inline variation sub-rows and lookup-table routing.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Entities;
+namespace DataDeck\Entities;
 
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Query\SmartQueryPlanner;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Query\SmartQueryPlanner;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -93,7 +93,7 @@ final class WooProductEntityAdapter extends PostEntityAdapter {
 
 	public function create_record( array $data ): int|WP_Error {
 		if ( ! $this->can_create() ) {
-			return new WP_Error( 'rowcraft_cannot_create', __( 'Permission denied.', 'rowcraft' ), [ 'status' => 403 ] );
+			return new WP_Error( 'datadeck_cannot_create', __( 'Permission denied.', 'datadeck' ), [ 'status' => 403 ] );
 		}
 
 		if ( ! class_exists( 'WC_Product_Simple' ) ) {
@@ -101,7 +101,7 @@ final class WooProductEntityAdapter extends PostEntityAdapter {
 		}
 
 		$product = new \WC_Product_Simple();
-		$product->set_name( sanitize_text_field( (string) ( $data['title'] ?? __( 'New Product', 'rowcraft' ) ) ) );
+		$product->set_name( sanitize_text_field( (string) ( $data['title'] ?? __( 'New Product', 'datadeck' ) ) ) );
 		$product->set_status( sanitize_key( (string) ( $data['status'] ?? 'draft' ) ) );
 
 		if ( isset( $data['regular_price'] ) && '' !== (string) $data['regular_price'] ) {
@@ -113,7 +113,7 @@ final class WooProductEntityAdapter extends PostEntityAdapter {
 
 		$product_id = $product->save();
 		if ( $product_id <= 0 ) {
-			return new WP_Error( 'rowcraft_wc_create_failed', __( 'Failed to create product.', 'rowcraft' ), [ 'status' => 500 ] );
+			return new WP_Error( 'datadeck_wc_create_failed', __( 'Failed to create product.', 'datadeck' ), [ 'status' => 500 ] );
 		}
 
 		foreach ( $data as $field_id => $value ) {

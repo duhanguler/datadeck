@@ -2,12 +2,12 @@
 /**
  * Paginated Query Result DTO with performance telemetry.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Query;
+namespace DataDeck\Query;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

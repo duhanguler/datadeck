@@ -2,18 +2,18 @@
 /**
  * WordPress Media Library Entity Adapter.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Entities;
+namespace DataDeck\Entities;
 
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Query\QueryResult;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Query\SmartQueryPlanner;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Query\QueryResult;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Query\SmartQueryPlanner;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -31,11 +31,11 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 	}
 
 	public function get_label(): string {
-		return __( 'Media Item', 'rowcraft' );
+		return __( 'Media Item', 'datadeck' );
 	}
 
 	public function get_plural_label(): string {
-		return __( 'Media Library', 'rowcraft' );
+		return __( 'Media Library', 'datadeck' );
 	}
 
 	public function get_group(): string {
@@ -94,7 +94,7 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 	}
 
 	public function duplicate_record( int $record_id ): int|WP_Error {
-		return new WP_Error( 'rowcraft_unsupported', __( 'Media attachments cannot be duplicated inline.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_unsupported', __( 'Media attachments cannot be duplicated inline.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
 	public function delete_records( array $ids ): array {
@@ -105,7 +105,7 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 			if ( ! current_user_can( 'delete_post', $id ) ) {
 				$errors[] = [
 					'id'      => $id,
-					'message' => __( 'Permission denied.', 'rowcraft' ),
+					'message' => __( 'Permission denied.', 'datadeck' ),
 				];
 				continue;
 			}
@@ -113,7 +113,7 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 			if ( false === $res || null === $res ) {
 				$errors[] = [
 					'id'      => $id,
-					'message' => __( 'Failed to delete media item.', 'rowcraft' ),
+					'message' => __( 'Failed to delete media item.', 'datadeck' ),
 				];
 			} else {
 				$deleted[] = $id;

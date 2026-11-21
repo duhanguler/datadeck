@@ -5,15 +5,15 @@
  * Streams 50,000+ rows directly to php://output in 500-row chunks while clearing
  * WordPress runtime object cache between iterations to stay under ~20 MB RAM.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Query;
+namespace DataDeck\Query;
 
-use RowCraft\Contracts\EntityAdapterInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\EntityAdapterInterface;
+use DataDeck\Schema\FieldDefinition;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,7 +39,7 @@ final class KeysetStreamExporter {
 	): void {
 		$format   = 'json' === strtolower( $format ) ? 'json' : 'csv';
 		$filename = sprintf(
-			'rowcraft-%s-%s.%s',
+			'datadeck-%s-%s.%s',
 			sanitize_file_name( $adapter->get_slug() ),
 			gmdate( 'Ymd-His' ),
 			$format

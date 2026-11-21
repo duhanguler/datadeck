@@ -2,15 +2,15 @@
 /**
  * WordPress User Field Provider.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 use WP_User;
 
@@ -43,7 +43,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 		return [
 			new FieldDefinition(
 				id: 'id',
-				label: __( 'ID', 'rowcraft' ),
+				label: __( 'ID', 'datadeck' ),
 				type: 'integer',
 				group: 'core',
 				provider: $this->get_id(),
@@ -58,7 +58,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'user_login',
-				label: __( 'Username', 'rowcraft' ),
+				label: __( 'Username', 'datadeck' ),
 				type: 'text',
 				group: 'core',
 				provider: $this->get_id(),
@@ -71,7 +71,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'display_name',
-				label: __( 'Display Name', 'rowcraft' ),
+				label: __( 'Display Name', 'datadeck' ),
 				type: 'text',
 				group: 'core',
 				provider: $this->get_id(),
@@ -83,7 +83,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'user_email',
-				label: __( 'Email', 'rowcraft' ),
+				label: __( 'Email', 'datadeck' ),
 				type: 'email',
 				group: 'core',
 				provider: $this->get_id(),
@@ -95,7 +95,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'role',
-				label: __( 'Role', 'rowcraft' ),
+				label: __( 'Role', 'datadeck' ),
 				type: 'select',
 				group: 'core',
 				provider: $this->get_id(),
@@ -108,7 +108,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'first_name',
-				label: __( 'First Name', 'rowcraft' ),
+				label: __( 'First Name', 'datadeck' ),
 				type: 'text',
 				group: 'core',
 				provider: $this->get_id(),
@@ -121,7 +121,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'last_name',
-				label: __( 'Last Name', 'rowcraft' ),
+				label: __( 'Last Name', 'datadeck' ),
 				type: 'text',
 				group: 'core',
 				provider: $this->get_id(),
@@ -134,7 +134,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'user_url',
-				label: __( 'Website', 'rowcraft' ),
+				label: __( 'Website', 'datadeck' ),
 				type: 'url',
 				group: 'core',
 				provider: $this->get_id(),
@@ -147,7 +147,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'registered',
-				label: __( 'Registered', 'rowcraft' ),
+				label: __( 'Registered', 'datadeck' ),
 				type: 'datetime',
 				group: 'core',
 				provider: $this->get_id(),
@@ -241,15 +241,15 @@ final class UserFieldProvider implements FieldProviderInterface {
 	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
 		if ( 'role' === $field->id ) {
 			if ( ! current_user_can( 'promote_users' ) || get_current_user_id() === $record_id ) {
-				return new WP_Error( 'rowcraft_role_forbidden', __( 'Cannot change this user role.', 'rowcraft' ), [ 'status' => 403 ] );
+				return new WP_Error( 'datadeck_role_forbidden', __( 'Cannot change this user role.', 'datadeck' ), [ 'status' => 403 ] );
 			}
 			$role = sanitize_key( (string) $value );
 			if ( ! wp_roles()->is_role( $role ) ) {
-				return new WP_Error( 'rowcraft_invalid_role', __( 'Invalid role.', 'rowcraft' ), [ 'status' => 400 ] );
+				return new WP_Error( 'datadeck_invalid_role', __( 'Invalid role.', 'datadeck' ), [ 'status' => 400 ] );
 			}
 			$user = get_userdata( $record_id );
 			if ( ! $user instanceof WP_User ) {
-				return new WP_Error( 'rowcraft_user_missing', __( 'User not found.', 'rowcraft' ), [ 'status' => 404 ] );
+				return new WP_Error( 'datadeck_user_missing', __( 'User not found.', 'datadeck' ), [ 'status' => 404 ] );
 			}
 			$user->set_role( $role );
 			return true;
@@ -268,7 +268,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 			case 'user_email':
 				$email = sanitize_email( (string) $value );
 				if ( ! is_email( $email ) ) {
-					return new WP_Error( 'rowcraft_invalid_email', __( 'Invalid email address.', 'rowcraft' ), [ 'status' => 400 ] );
+					return new WP_Error( 'datadeck_invalid_email', __( 'Invalid email address.', 'datadeck' ), [ 'status' => 400 ] );
 				}
 				$update['user_email'] = $email;
 				break;
@@ -276,7 +276,7 @@ final class UserFieldProvider implements FieldProviderInterface {
 				$update['user_url'] = esc_url_raw( (string) $value );
 				break;
 			default:
-				return new WP_Error( 'rowcraft_unsupported_user_field', __( 'Unsupported user field.', 'rowcraft' ), [ 'status' => 400 ] );
+				return new WP_Error( 'datadeck_unsupported_user_field', __( 'Unsupported user field.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$res = wp_update_user( $update );

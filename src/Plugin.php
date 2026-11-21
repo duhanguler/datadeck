@@ -1,39 +1,39 @@
 <?php
 /**
- * RowCraft Main Plugin Container & Lazy Service Bootstrapper.
+ * DataDeck Main Plugin Container & Lazy Service Bootstrapper.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft;
+namespace DataDeck;
 
-use RowCraft\Abilities\AbilityRegistrar;
-use RowCraft\Admin\AdminIntegration;
-use RowCraft\Bulk\BulkOperationEngine;
-use RowCraft\Bulk\CampaignScheduler;
-use RowCraft\Cli\RowCraftCommand;
-use RowCraft\Entities\EntityRegistry;
-use RowCraft\Fields\AcfFieldProvider;
-use RowCraft\Fields\CorePostFieldProvider;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Fields\MediaFieldProvider;
-use RowCraft\Fields\MetaBoxFieldProvider;
-use RowCraft\Fields\NativeMetaFieldProvider;
-use RowCraft\Fields\SeoFieldProvider;
-use RowCraft\Fields\UserFieldProvider;
-use RowCraft\Fields\WooOrderFieldProvider;
-use RowCraft\Fields\WooProductFieldProvider;
-use RowCraft\Formula\ExpressionEngine;
-use RowCraft\History\HistoryService;
-use RowCraft\History\Schema;
-use RowCraft\Lenses\LensRegistry;
-use RowCraft\Query\KeysetStreamExporter;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Query\SmartQueryPlanner;
-use RowCraft\Rest\RestApi;
-use RowCraft\Sync\ViewSyncService;
+use DataDeck\Abilities\AbilityRegistrar;
+use DataDeck\Admin\AdminIntegration;
+use DataDeck\Bulk\BulkOperationEngine;
+use DataDeck\Bulk\CampaignScheduler;
+use DataDeck\Cli\DataDeckCommand;
+use DataDeck\Entities\EntityRegistry;
+use DataDeck\Fields\AcfFieldProvider;
+use DataDeck\Fields\CorePostFieldProvider;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Fields\MediaFieldProvider;
+use DataDeck\Fields\MetaBoxFieldProvider;
+use DataDeck\Fields\NativeMetaFieldProvider;
+use DataDeck\Fields\SeoFieldProvider;
+use DataDeck\Fields\UserFieldProvider;
+use DataDeck\Fields\WooOrderFieldProvider;
+use DataDeck\Fields\WooProductFieldProvider;
+use DataDeck\Formula\ExpressionEngine;
+use DataDeck\History\HistoryService;
+use DataDeck\History\Schema;
+use DataDeck\Lenses\LensRegistry;
+use DataDeck\Query\KeysetStreamExporter;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Query\SmartQueryPlanner;
+use DataDeck\Rest\RestApi;
+use DataDeck\Sync\ViewSyncService;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -102,7 +102,7 @@ final class Plugin {
 
 		// Scheduled & auto-revert campaigns + daily history TTL pruning.
 		$this->scheduler->register_hooks();
-		add_action( 'rowcraft_daily_prune', [ $this->history, 'prune_expired' ] );
+		add_action( 'datadeck_daily_prune', [ $this->history, 'prune_expired' ] );
 
 		// REST API layer.
 		$rest = new RestApi(
@@ -129,8 +129,8 @@ final class Plugin {
 		// WP-CLI commands.
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
 			\WP_CLI::add_command(
-				'rowcraft',
-				new RowCraftCommand( $this->entities, $this->bulk, $this->history, $this->views )
+				'datadeck',
+				new DataDeckCommand( $this->entities, $this->bulk, $this->history, $this->views )
 			);
 		}
 	}

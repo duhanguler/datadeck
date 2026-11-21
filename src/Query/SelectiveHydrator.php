@@ -6,12 +6,12 @@
  * _elementor_data / _bricks_page_content blobs), this fetches ONLY the visible columns' keys
  * in a single indexed SQL query.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Query;
+namespace DataDeck\Query;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

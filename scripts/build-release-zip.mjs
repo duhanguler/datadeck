@@ -4,11 +4,11 @@ import { execSync } from 'node:child_process';
 
 const ROOT = process.cwd();
 const DIST_ROOT = path.join( ROOT, 'dist' );
-const STAGE_DIR = path.join( DIST_ROOT, 'rowcraft' );
-const ZIP_PATH = path.join( DIST_ROOT, 'rowcraft.zip' );
+const STAGE_DIR = path.join( DIST_ROOT, 'datadeck' );
+const ZIP_PATH = path.join( DIST_ROOT, 'datadeck.zip' );
 
 const INCLUDE = [
-	'rowcraft.php',
+	'datadeck.php',
 	'uninstall.php',
 	'readme.txt',
 	'src',
@@ -28,6 +28,6 @@ for ( const rel of INCLUDE ) {
 	fs.cpSync( src, dst, { recursive: true } );
 }
 
-execSync( `cd "${ DIST_ROOT }" && zip -rq "${ ZIP_PATH }" rowcraft` );
+execSync( `cd "${ DIST_ROOT }" && zip -rq "${ ZIP_PATH }" datadeck` );
 const sizeKb = ( fs.statSync( ZIP_PATH ).size / 1024 ).toFixed( 1 );
-console.log( `Built clean WordPress.org release archive: dist/rowcraft.zip (${ sizeKb } KB)` );
+console.log( `Built clean WordPress.org release archive: dist/datadeck.zip (${ sizeKb } KB)` );

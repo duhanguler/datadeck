@@ -2,15 +2,15 @@
 /**
  * Central Field Provider Registry with request-level schema caching.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -94,12 +94,12 @@ final class FieldRegistry {
 		}
 
 		/**
-		 * Allow third-party extensions to register or adjust RowCraft field definitions.
+		 * Allow third-party extensions to register or adjust DataDeck field definitions.
 		 *
 		 * @param array<string, FieldDefinition> $fields      Field map keyed by ID.
 		 * @param string                         $entity_slug Active entity slug.
 		 */
-		$filtered = apply_filters( 'rowcraft_entity_fields', $fields, $entity_slug );
+		$filtered = apply_filters( 'datadeck_entity_fields', $fields, $entity_slug );
 
 		$this->field_cache[ $cache_key ] = is_array( $filtered ) ? $filtered : $fields;
 		$this->include_options           = $prev_opt;
@@ -219,14 +219,14 @@ final class FieldRegistry {
 	public function write_value( string $entity_slug, int $record_id, string $field_id, mixed $value ): true|WP_Error {
 		$field = $this->get_field( $entity_slug, $field_id );
 		if ( ! $field ) {
-			return new WP_Error( 'rowcraft_unknown_field', sprintf( 'Unknown field "%s".', $field_id ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_unknown_field', sprintf( 'Unknown field "%s".', $field_id ), [ 'status' => 400 ] );
 		}
 		if ( ! $field->editable ) {
-			return new WP_Error( 'rowcraft_readonly_field', sprintf( 'Field "%s" is read-only.', $field->label ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_readonly_field', sprintf( 'Field "%s" is read-only.', $field->label ), [ 'status' => 400 ] );
 		}
 		$provider = $this->providers[ $field->provider ] ?? null;
 		if ( ! $provider ) {
-			return new WP_Error( 'rowcraft_missing_provider', 'Field provider unavailable.', [ 'status' => 500 ] );
+			return new WP_Error( 'datadeck_missing_provider', 'Field provider unavailable.', [ 'status' => 500 ] );
 		}
 
 		return $provider->write_value( $entity_slug, $record_id, $field, $value );

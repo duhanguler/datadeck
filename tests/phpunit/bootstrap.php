@@ -1,8 +1,8 @@
 <?php
 /**
- * PHPUnit bootstrap for RowCraft unit tests (no WordPress runtime required for pure unit tests).
+ * PHPUnit bootstrap for DataDeck unit tests (no WordPress runtime required for pure unit tests).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);

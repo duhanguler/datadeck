@@ -2,12 +2,12 @@
 /**
  * Immutable Field Definition value object shared between PHP engine and React DataViews UI.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Schema;
+namespace DataDeck\Schema;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

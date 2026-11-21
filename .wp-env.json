@@ -7,7 +7,7 @@
     "https://downloads.wordpress.org/plugin/plugin-check.latest-stable.zip"
   ],
   "mappings": {
-    "wp-content/plugins/rowcraft": "."
+    "wp-content/plugins/datadeck": "."
   },
   "port": 8888,
   "testsPort": 8889,

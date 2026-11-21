@@ -2,15 +2,15 @@
 /**
  * WooCommerce HPOS-Native Order Field Provider.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -50,7 +50,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 		return [
 			new FieldDefinition(
 				id: 'id',
-				label: __( 'Order #', 'rowcraft' ),
+				label: __( 'Order #', 'datadeck' ),
 				type: 'integer',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -65,7 +65,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'customer_name',
-				label: __( 'Customer', 'rowcraft' ),
+				label: __( 'Customer', 'datadeck' ),
 				type: 'text',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -77,7 +77,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'billing_email',
-				label: __( 'Billing Email', 'rowcraft' ),
+				label: __( 'Billing Email', 'datadeck' ),
 				type: 'email',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -89,7 +89,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'status',
-				label: __( 'Order Status', 'rowcraft' ),
+				label: __( 'Order Status', 'datadeck' ),
 				type: 'select',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -102,7 +102,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'total',
-				label: __( 'Total', 'rowcraft' ),
+				label: __( 'Total', 'datadeck' ),
 				type: 'currency',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -117,7 +117,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'payment_method',
-				label: __( 'Payment', 'rowcraft' ),
+				label: __( 'Payment', 'datadeck' ),
 				type: 'text',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -129,7 +129,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'customer_note',
-				label: __( 'Customer Note', 'rowcraft' ),
+				label: __( 'Customer Note', 'datadeck' ),
 				type: 'textarea',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -141,7 +141,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'date',
-				label: __( 'Created', 'rowcraft' ),
+				label: __( 'Created', 'datadeck' ),
 				type: 'datetime',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -193,7 +193,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 				$payment_title        = $order->get_payment_method_title();
 				$rows[ $oid ][ $fid ] = match ( $fid ) {
 					'id'             => $oid,
-					'customer_name'  => '' !== $billing_name ? $billing_name : __( 'Guest', 'rowcraft' ),
+					'customer_name'  => '' !== $billing_name ? $billing_name : __( 'Guest', 'datadeck' ),
 					'billing_email'  => $order->get_billing_email(),
 					'status'         => $order->get_status(),
 					'total'          => (float) $order->get_total(),
@@ -224,21 +224,21 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 
 	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): true|WP_Error {
 		if ( ! function_exists( 'wc_get_order' ) ) {
-			return new WP_Error( 'rowcraft_woo_inactive', __( 'WooCommerce is not active.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_woo_inactive', __( 'WooCommerce is not active.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 		$order = wc_get_order( $record_id );
 		if ( ! $order instanceof \WC_Order ) {
-			return new WP_Error( 'rowcraft_order_missing', __( 'Order not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_order_missing', __( 'Order not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		switch ( $field->id ) {
 			case 'status':
-				$order->update_status( sanitize_key( (string) $value ), __( 'Updated via RowCraft.', 'rowcraft' ), true );
+				$order->update_status( sanitize_key( (string) $value ), __( 'Updated via DataDeck.', 'datadeck' ), true );
 				return true;
 			case 'billing_email':
 				$email = sanitize_email( (string) $value );
 				if ( '' !== $email && ! is_email( $email ) ) {
-					return new WP_Error( 'rowcraft_invalid_email', __( 'Invalid billing email.', 'rowcraft' ), [ 'status' => 400 ] );
+					return new WP_Error( 'datadeck_invalid_email', __( 'Invalid billing email.', 'datadeck' ), [ 'status' => 400 ] );
 				}
 				$order->set_billing_email( $email );
 				$order->save();
@@ -248,7 +248,7 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 				$order->save();
 				return true;
 			default:
-				return new WP_Error( 'rowcraft_unsupported_order_field', __( 'Unsupported order field.', 'rowcraft' ), [ 'status' => 400 ] );
+				return new WP_Error( 'datadeck_unsupported_order_field', __( 'Unsupported order field.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 	}
 }

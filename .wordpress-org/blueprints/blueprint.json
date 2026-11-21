@@ -1,6 +1,6 @@
 {
   "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-  "landingPage": "/wp-admin/admin.php?page=rowcraft&entity=post",
+  "landingPage": "/wp-admin/admin.php?page=datadeck&entity=post",
   "preferredVersions": {
     "php": "8.2",
     "wp": "latest"
@@ -18,7 +18,7 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "wordpress.org/plugins",
-        "slug": "rowcraft"
+        "slug": "datadeck"
       },
       "options": {
         "activate": true
@@ -26,7 +26,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php require_once '/wordpress/wp-load.php'; $posts = [ ['Scaling WooCommerce Past 100k SKUs', 'publish', 'Scaling WooCommerce Catalogs', 'Lookup tables and selective hydration keep queries constant.'], ['Zero-Shift Inline Table Architecture', 'publish', 'Zero-Shift Admin Tables', 'Exact CSS geometry prevents row jitter during inline editing.'], ['Draft Article Missing SEO Metadata and Featured Thumbnail for Live Audit Testing', 'draft', '', ''] ]; foreach ($posts as $p) { $id = wp_insert_post(['post_title' => $p[0], 'post_status' => $p[1], 'post_excerpt' => $p[3], 'post_content' => 'RowCraft interactive Playground demo content.']); if ($id && $p[2]) { update_post_meta($id, '_yoast_wpseo_title', $p[2]); update_post_meta($id, '_yoast_wpseo_metadesc', $p[3]); } }"
+      "code": "<?php require_once '/wordpress/wp-load.php'; $posts = [ ['Scaling WooCommerce Past 100k SKUs', 'publish', 'Scaling WooCommerce Catalogs', 'Lookup tables and selective hydration keep queries constant.'], ['Zero-Shift Inline Table Architecture', 'publish', 'Zero-Shift Admin Tables', 'Exact CSS geometry prevents row jitter during inline editing.'], ['Draft Article Missing SEO Metadata and Featured Thumbnail for Live Audit Testing', 'draft', '', ''] ]; foreach ($posts as $p) { $id = wp_insert_post(['post_title' => $p[0], 'post_status' => $p[1], 'post_excerpt' => $p[3], 'post_content' => 'DataDeck interactive Playground demo content.']); if ($id && $p[2]) { update_post_meta($id, '_yoast_wpseo_title', $p[2]); update_post_meta($id, '_yoast_wpseo_metadesc', $p[3]); } }"
     }
   ]
 }

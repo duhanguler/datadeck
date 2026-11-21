@@ -6,19 +6,19 @@
  * safe AST formulas, math adjustments, psychological rounding, find/replace, templates,
  * taxonomy transforms, and automatic delta snapshot recording.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Bulk;
+namespace DataDeck\Bulk;
 
 use InvalidArgumentException;
-use RowCraft\Entities\EntityRegistry;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Formula\ExpressionEngine;
-use RowCraft\History\HistoryService;
-use RowCraft\Query\QueryRequest;
+use DataDeck\Entities\EntityRegistry;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Formula\ExpressionEngine;
+use DataDeck\History\HistoryService;
+use DataDeck\Query\QueryRequest;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -45,7 +45,7 @@ final class BulkOperationEngine {
 	public function commit_cell_edits( string $entity_slug, array $edits, string $operation_type = 'inline' ): array|WP_Error {
 		$adapter = $this->entities->get( $entity_slug );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_unknown_entity', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_unknown_entity', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		if ( empty( $edits ) ) {
@@ -58,7 +58,7 @@ final class BulkOperationEngine {
 
 		$summary = sprintf(
 			/* translators: 1: edit count, 2: entity label */
-			__( '%1$d cell edits on %2$s', 'rowcraft' ),
+			__( '%1$d cell edits on %2$s', 'datadeck' ),
 			count( $edits ),
 			$adapter->get_plural_label()
 		);
@@ -80,7 +80,7 @@ final class BulkOperationEngine {
 				$errors[] = [
 					'id'      => $oid,
 					'field'   => $field_id,
-					'message' => __( 'Permission denied.', 'rowcraft' ),
+					'message' => __( 'Permission denied.', 'datadeck' ),
 				];
 				continue;
 			}
@@ -127,13 +127,13 @@ final class BulkOperationEngine {
 	): array|WP_Error {
 		$adapter = $this->entities->get( $entity_slug );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_unknown_entity', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_unknown_entity', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$field_id = (string) ( $rule['field'] ?? '' );
 		$field    = $this->fields->get_field( $entity_slug, $field_id );
 		if ( ! $field || ! $field->editable ) {
-			return new WP_Error( 'rowcraft_invalid_field', __( 'Selected target field is not editable.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_invalid_field', __( 'Selected target field is not editable.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$compiled_ast = $this->maybe_compile_formula( $rule );
@@ -215,13 +215,13 @@ final class BulkOperationEngine {
 		$start   = microtime( true );
 		$adapter = $this->entities->get( $entity_slug );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_unknown_entity', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_unknown_entity', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$field_id = (string) ( $rule['field'] ?? '' );
 		$field    = $this->fields->get_field( $entity_slug, $field_id );
 		if ( ! $field || ! $field->editable ) {
-			return new WP_Error( 'rowcraft_invalid_field', __( 'Selected target field is not editable.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_invalid_field', __( 'Selected target field is not editable.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$compiled_ast = $this->maybe_compile_formula( $rule );
@@ -286,7 +286,7 @@ final class BulkOperationEngine {
 			if ( ! $bypass_capability && ! $adapter->can_edit( $oid ) ) {
 				$errors[] = [
 					'id'      => $oid,
-					'message' => __( 'Permission denied.', 'rowcraft' ),
+					'message' => __( 'Permission denied.', 'datadeck' ),
 				];
 				continue;
 			}
@@ -365,7 +365,7 @@ final class BulkOperationEngine {
 
 				case 'formula':
 					if ( null === $compiled_ast ) {
-						return new WP_Error( 'rowcraft_missing_formula', __( 'Formula is required.', 'rowcraft' ) );
+						return new WP_Error( 'datadeck_missing_formula', __( 'Formula is required.', 'datadeck' ) );
 					}
 					return $this->formula->evaluate_ast( $compiled_ast, $row_context );
 
@@ -406,7 +406,7 @@ final class BulkOperationEngine {
 						// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 						$res = @preg_replace( $pattern, $replace, (string) $current_val );
 						if ( null === $res ) {
-							return new WP_Error( 'rowcraft_invalid_regex', __( 'Invalid regular expression.', 'rowcraft' ) );
+							return new WP_Error( 'datadeck_invalid_regex', __( 'Invalid regular expression.', 'datadeck' ) );
 						}
 						return $res;
 					}
@@ -444,10 +444,10 @@ final class BulkOperationEngine {
 					return gmdate( 'Y-m-d H:i:s', $ts + ( $days * DAY_IN_SECONDS ) );
 
 				default:
-					return new WP_Error( 'rowcraft_unknown_action', sprintf( 'Unsupported bulk action "%s".', $action ) );
+					return new WP_Error( 'datadeck_unknown_action', sprintf( 'Unsupported bulk action "%s".', $action ) );
 			}
 		} catch ( InvalidArgumentException $e ) {
-			return new WP_Error( 'rowcraft_formula_error', $e->getMessage() );
+			return new WP_Error( 'datadeck_formula_error', $e->getMessage() );
 		}
 	}
 
@@ -479,7 +479,7 @@ final class BulkOperationEngine {
 		try {
 			return $this->formula->compile( $expr );
 		} catch ( InvalidArgumentException $e ) {
-			return new WP_Error( 'rowcraft_formula_syntax', $e->getMessage(), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_formula_syntax', $e->getMessage(), [ 'status' => 400 ] );
 		}
 	}
 

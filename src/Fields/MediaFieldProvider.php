@@ -2,15 +2,15 @@
 /**
  * Media Library Field Provider — rapid inline & bulk editing of alt text, titles, captions, and audit metrics.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 use WP_Post;
 
@@ -35,7 +35,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 		return [
 			new FieldDefinition(
 				id: 'title',
-				label: __( 'Title', 'rowcraft' ),
+				label: __( 'Title', 'datadeck' ),
 				type: 'text',
 				group: 'media',
 				provider: $this->get_id(),
@@ -47,7 +47,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'preview',
-				label: __( 'Preview', 'rowcraft' ),
+				label: __( 'Preview', 'datadeck' ),
 				type: 'media',
 				group: 'media',
 				provider: $this->get_id(),
@@ -61,7 +61,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'id',
-				label: __( 'ID', 'rowcraft' ),
+				label: __( 'ID', 'datadeck' ),
 				type: 'integer',
 				group: 'media',
 				provider: $this->get_id(),
@@ -76,7 +76,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'alt_text',
-				label: __( 'Alt Text', 'rowcraft' ),
+				label: __( 'Alt Text', 'datadeck' ),
 				type: 'text',
 				group: 'media',
 				provider: $this->get_id(),
@@ -90,7 +90,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'caption',
-				label: __( 'Caption', 'rowcraft' ),
+				label: __( 'Caption', 'datadeck' ),
 				type: 'textarea',
 				group: 'media',
 				provider: $this->get_id(),
@@ -102,7 +102,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'mime',
-				label: __( 'MIME Type', 'rowcraft' ),
+				label: __( 'MIME Type', 'datadeck' ),
 				type: 'text',
 				group: 'media',
 				provider: $this->get_id(),
@@ -115,7 +115,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'dimensions',
-				label: __( 'Dimensions', 'rowcraft' ),
+				label: __( 'Dimensions', 'datadeck' ),
 				type: 'text',
 				group: 'media',
 				provider: $this->get_id(),
@@ -131,7 +131,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'file_size_kb',
-				label: __( 'Size (KB)', 'rowcraft' ),
+				label: __( 'Size (KB)', 'datadeck' ),
 				type: 'number',
 				group: 'media',
 				provider: $this->get_id(),
@@ -146,7 +146,7 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'date',
-				label: __( 'Uploaded', 'rowcraft' ),
+				label: __( 'Uploaded', 'datadeck' ),
 				type: 'datetime',
 				group: 'media',
 				provider: $this->get_id(),
@@ -282,6 +282,6 @@ final class MediaFieldProvider implements FieldProviderInterface {
 			);
 			return is_wp_error( $res ) ? $res : true;
 		}
-		return new WP_Error( 'rowcraft_unsupported_media_field', __( 'Unsupported media field.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_unsupported_media_field', __( 'Unsupported media field.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 }

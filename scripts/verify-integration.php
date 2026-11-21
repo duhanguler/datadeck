@@ -1,17 +1,17 @@
 <?php
 /**
  * Live WordPress + WooCommerce + SCF Integration & Performance SLA Verification Script.
- * Run via: docker compose exec -T wpcli wp eval-file /var/www/html/wp-content/plugins/rowcraft/scripts/verify-integration.php
+ * Run via: docker compose exec -T wpcli wp eval-file /var/www/html/wp-content/plugins/datadeck/scripts/verify-integration.php
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use RowCraft\Plugin;
-use RowCraft\Query\QueryRequest;
+use DataDeck\Plugin;
+use DataDeck\Query\QueryRequest;
 
 $plugin   = Plugin::instance();
 $entities = $plugin->entities();
@@ -50,7 +50,7 @@ if ( $prod_adapter ) {
 	// Verify SelectiveHydrator skips multi-MB unrelated blobs like _elementor_data.
 	$first_id = (int) $res->items[0]['id'];
 	update_post_meta( $first_id, '_elementor_data', str_repeat( '[{"widget":"heavy"}]', 5000 ) );
-	$selective = ( new \RowCraft\Query\SelectiveHydrator() )->hydrate_post_meta( [ $first_id ], [ '_sku', '_regular_price' ] );
+	$selective = ( new \DataDeck\Query\SelectiveHydrator() )->hydrate_post_meta( [ $first_id ], [ '_sku', '_regular_price' ] );
 	$assert( ! isset( $selective[ $first_id ]['_elementor_data'] ), 'SelectiveHydrator skipped heavy _elementor_data blob' );
 	delete_post_meta( $first_id, '_elementor_data' );
 

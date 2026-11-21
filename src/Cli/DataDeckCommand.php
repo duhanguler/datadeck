@@ -1,26 +1,26 @@
 <?php
 /**
- * WP-CLI Command Suite for RowCraft (`wp rowcraft ...`).
+ * WP-CLI Command Suite for DataDeck (`wp datadeck ...`).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Cli;
+namespace DataDeck\Cli;
 
-use RowCraft\Bulk\BulkOperationEngine;
-use RowCraft\Entities\EntityRegistry;
-use RowCraft\History\HistoryService;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Sync\ViewSyncService;
+use DataDeck\Bulk\BulkOperationEngine;
+use DataDeck\Entities\EntityRegistry;
+use DataDeck\History\HistoryService;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Sync\ViewSyncService;
 use WP_CLI;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-final class RowCraftCommand {
+final class DataDeckCommand {
 
 	public function __construct(
 		private readonly EntityRegistry $entities,
@@ -30,11 +30,11 @@ final class RowCraftCommand {
 	) {}
 
 	/**
-	 * Display RowCraft entities, active integrations, and local JSON sync status.
+	 * Display DataDeck entities, active integrations, and local JSON sync status.
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp rowcraft status
+	 *     wp datadeck status
 	 *
 	 * @param array<int, string>   $args       Positional args.
 	 * @param array<string, mixed> $assoc_args Named options.
@@ -43,7 +43,7 @@ final class RowCraftCommand {
 		$entities = $this->entities->list_readable();
 		$sync     = $this->views->get_json_sync_status();
 
-		WP_CLI::log( sprintf( 'RowCraft v%s', ROWCRAFT_VERSION ) );
+		WP_CLI::log( sprintf( 'DataDeck v%s', DATADECK_VERSION ) );
 		WP_CLI::log( sprintf( 'Discovered entities: %s', implode( ', ', array_column( $entities, 'slug' ) ) ) );
 		WP_CLI::log( sprintf( 'Local JSON sync: %s (%d pending)', $sync['enabled'] ? $sync['savePath'] : 'disabled', count( $sync['syncAvailable'] ) ) );
 	}
@@ -61,7 +61,7 @@ final class RowCraftCommand {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp rowcraft benchmark product --per-page=100
+	 *     wp datadeck benchmark product --per-page=100
 	 *
 	 * @param array<int, string>   $args       Positional args.
 	 * @param array<string, mixed> $assoc_args Named options.
@@ -164,7 +164,7 @@ final class RowCraftCommand {
 	 * ## OPTIONS
 	 *
 	 * <uuid>
-	 * : Batch UUID from `wp rowcraft history`.
+	 * : Batch UUID from `wp datadeck history`.
 	 *
 	 * @param array<int, string>   $args       Positional args.
 	 * @param array<string, mixed> $assoc_args Named options.
@@ -180,13 +180,13 @@ final class RowCraftCommand {
 	}
 
 	/**
-	 * Sync local rowcraft-json/ view files into the WordPress database.
+	 * Sync local datadeck-json/ view files into the WordPress database.
 	 *
 	 * @param array<int, string>   $args       Positional args.
 	 * @param array<string, mixed> $assoc_args Named options.
 	 */
 	public function sync_json( array $args, array $assoc_args ): void {
 		$res = $this->views->sync_from_json();
-		WP_CLI::success( sprintf( 'Synced %d view(s) from rowcraft-json/.', (int) $res['synced'] ) );
+		WP_CLI::success( sprintf( 'Synced %d view(s) from datadeck-json/.', (int) $res['synced'] ) );
 	}
 }

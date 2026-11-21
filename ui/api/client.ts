@@ -14,7 +14,7 @@ import type {
 	SavedView,
 } from '../types';
 
-const REST_PREFIX = '/rowcraft/v1/';
+const REST_PREFIX = '/datadeck/v1/';
 
 let activeQueryController: AbortController | null = null;
 
@@ -281,8 +281,8 @@ export function buildExportUrl(
 	params: RecordsQueryParams,
 	format: 'csv' | 'json'
 ): string {
-	const root = window.rowcraftBootstrap?.restRoot || '/wp-json/rowcraft/v1/';
-	const nonce = window.rowcraftBootstrap?.nonce || '';
+	const root = window.datadeckBootstrap?.restRoot || '/wp-json/datadeck/v1/';
+	const nonce = window.datadeckBootstrap?.nonce || '';
 	const qs = buildQueryString( {
 		format,
 		_wpnonce: nonce,

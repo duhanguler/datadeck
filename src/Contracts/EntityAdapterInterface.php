@@ -2,15 +2,15 @@
 /**
  * Entity Adapter contract for universal data sources (Posts, CPTs, Media, Users, WooCommerce).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Contracts;
+namespace DataDeck\Contracts;
 
-use RowCraft\Query\QueryRequest;
-use RowCraft\Query\QueryResult;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Query\QueryResult;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {

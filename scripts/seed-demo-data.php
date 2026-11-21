@@ -1,19 +1,19 @@
 <?php
 /**
- * Deterministic demo dataset seeder for RowCraft local Docker verification & screenshots.
+ * Deterministic demo dataset seeder for DataDeck local Docker verification & screenshots.
  * Creates realistic Posts, Pages, WooCommerce Simple & Variable Products, HPOS Orders,
  * ACF/SCF Field Groups, SEO metadata, and Media items with intentional audit lens matches.
  *
- * Usage: wp eval-file /var/www/html/wp-content/plugins/rowcraft/scripts/seed-demo-data.php
+ * Usage: wp eval-file /var/www/html/wp-content/plugins/datadeck/scripts/seed-demo-data.php
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( get_option( 'rowcraft_demo_seeded' ) ) {
+if ( get_option( 'datadeck_demo_seeded' ) ) {
 	echo "Demo dataset already seeded.\n";
 	return;
 }
@@ -22,7 +22,7 @@ if ( get_option( 'rowcraft_demo_seeded' ) ) {
 if ( function_exists( 'acf_import_field_group' ) ) {
 	acf_import_field_group(
 		[
-			'key'      => 'group_rowcraft_product_specs',
+			'key'      => 'group_datadeck_product_specs',
 			'title'    => 'Product Specifications',
 			'fields'   => [
 				[
@@ -132,7 +132,7 @@ $posts_data = [
 	[ 'Safe AST Formula Evaluation in PHP Without Ever Calling eval()', 'publish', 'Safe AST Formula Engine in PHP 8.2', 'Build a recursive-descent arithmetic and conditional parser for bulk catalog operations.', 'php ast parser' ],
 	[ 'Designing Audit Trails and Atomic Rollback Snapshots for WordPress Bulk Edits', 'draft', '', 'Delta snapshot tables enable one-click rollback across thousands of modified rows.', 'wordpress rollback' ],
 	[ 'Automating Flash Sales with Action Scheduler and Auto-Reverting Price Snapshots', 'publish', 'Auto-Reverting WooCommerce Flash Sales', 'Schedule price reductions and automatically restore original catalog pricing on end date.', 'scheduled sales' ],
-	[ 'Version-Controlling Admin Column Layouts via Local JSON Sync in Agency Workflows', 'publish', 'Git-Syncable WordPress Admin Views', 'Mirror saved column presets to rowcraft-json/ for deterministic staging to production sync.', 'git workflow wordpress' ],
+	[ 'Version-Controlling Admin Column Layouts via Local JSON Sync in Agency Workflows', 'publish', 'Git-Syncable WordPress Admin Views', 'Mirror saved column presets to datadeck-json/ for deterministic staging to production sync.', 'git workflow wordpress' ],
 	[ 'Bulk Alt Text Auditing for European Accessibility Act Compliance', 'draft', 'EAA Accessibility Alt Text Audit Guide', '', 'accessibility alt text' ],
 ];
 
@@ -225,7 +225,7 @@ if ( class_exists( 'WooCommerce' ) && class_exists( 'WC_Product_Simple' ) ) {
 	// Create a Variable Product with 3 inline-expandable Variations!
 	if ( class_exists( 'WC_Product_Variable' ) && class_exists( 'WC_Product_Variation' ) ) {
 		$var_parent = new WC_Product_Variable();
-		$var_parent->set_name( 'RowCraft Edition Aluminum Keycap Set' );
+		$var_parent->set_name( 'DataDeck Edition Aluminum Keycap Set' );
 		$var_parent->set_status( 'publish' );
 		$var_parent->set_sku( 'KB-CAPS-VAR' );
 		if ( ! empty( $cat_map['Keyboards'] ) ) {
@@ -287,5 +287,5 @@ if ( class_exists( 'WooCommerce' ) && class_exists( 'WC_Product_Simple' ) ) {
 	}
 }
 
-update_option( 'rowcraft_demo_seeded', 1, false );
-echo "RowCraft demo dataset seeded successfully.\n";
+update_option( 'datadeck_demo_seeded', 1, false );
+echo "DataDeck demo dataset seeded successfully.\n";

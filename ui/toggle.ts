@@ -2,19 +2,19 @@
  * Ultra-lightweight (<1 KB) segmented view switcher injected cleanly into native wp-admin list headers.
  */
 ( () => {
-	const cfg = window.rowcraftToggle;
+	const cfg = window.datadeckToggle;
 	if ( ! cfg || ! cfg.workspaceUrl ) {
 		return;
 	}
 
 	const mount = () => {
 		const heading = document.querySelector( '.wrap .wp-heading-inline' );
-		if ( ! heading || document.getElementById( 'rowcraft-native-switcher' ) ) {
+		if ( ! heading || document.getElementById( 'datadeck-native-switcher' ) ) {
 			return;
 		}
 
 		const nav = document.createElement( 'span' );
-		nav.id = 'rowcraft-native-switcher';
+		nav.id = 'datadeck-native-switcher';
 		nav.setAttribute( 'role', 'group' );
 		nav.setAttribute( 'aria-label', 'List view switcher' );
 		nav.style.cssText =

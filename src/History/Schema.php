@@ -1,13 +1,13 @@
 <?php
 /**
- * Database schema manager for RowCraft audit history, rollback snapshots, and scheduled campaigns.
+ * Database schema manager for DataDeck audit history, rollback snapshots, and scheduled campaigns.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\History;
+namespace DataDeck\History;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -62,14 +62,14 @@ final class Schema {
 		dbDelta( $sql_batches );
 		dbDelta( $sql_changes );
 
-		update_option( 'rowcraft_db_version', ROWCRAFT_DB_VERSION, false );
+		update_option( 'datadeck_db_version', DATADECK_DB_VERSION, false );
 	}
 
 	/**
 	 * Ensure tables exist when plugin is updated without reactivation.
 	 */
 	public static function maybe_upgrade(): void {
-		if ( get_option( 'rowcraft_db_version' ) !== ROWCRAFT_DB_VERSION ) {
+		if ( get_option( 'datadeck_db_version' ) !== DATADECK_DB_VERSION ) {
 			self::install();
 		}
 	}
@@ -79,7 +79,7 @@ final class Schema {
 	 */
 	public static function batches_table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'rowcraft_batches';
+		return $wpdb->prefix . 'datadeck_batches';
 	}
 
 	/**
@@ -87,6 +87,6 @@ final class Schema {
 	 */
 	public static function changes_table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'rowcraft_changes';
+		return $wpdb->prefix . 'datadeck_changes';
 	}
 }

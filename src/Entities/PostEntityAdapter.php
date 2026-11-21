@@ -2,19 +2,19 @@
 /**
  * Universal WordPress Post, Page, and Custom Post Type Entity Adapter.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Entities;
+namespace DataDeck\Entities;
 
-use RowCraft\Contracts\EntityAdapterInterface;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Query\QueryResult;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Query\SmartQueryPlanner;
+use DataDeck\Contracts\EntityAdapterInterface;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Query\QueryResult;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Query\SmartQueryPlanner;
 use WP_Error;
 use WP_Post;
 
@@ -164,10 +164,10 @@ class PostEntityAdapter implements EntityAdapterInterface {
 
 	public function create_record( array $data ): int|WP_Error {
 		if ( ! $this->can_create() ) {
-			return new WP_Error( 'rowcraft_cannot_create', __( 'You do not have permission to create records.', 'rowcraft' ), [ 'status' => 403 ] );
+			return new WP_Error( 'datadeck_cannot_create', __( 'You do not have permission to create records.', 'datadeck' ), [ 'status' => 403 ] );
 		}
 
-		$title  = sanitize_text_field( (string) ( $data['title'] ?? __( 'Untitled', 'rowcraft' ) ) );
+		$title  = sanitize_text_field( (string) ( $data['title'] ?? __( 'Untitled', 'datadeck' ) ) );
 		$status = sanitize_key( (string) ( $data['status'] ?? 'draft' ) );
 		if ( ! in_array( $status, [ 'publish', 'draft', 'pending', 'private' ], true ) ) {
 			$status = 'draft';
@@ -199,18 +199,18 @@ class PostEntityAdapter implements EntityAdapterInterface {
 
 	public function duplicate_record( int $record_id ): int|WP_Error {
 		if ( ! $this->can_create() || ! $this->can_edit( $record_id ) ) {
-			return new WP_Error( 'rowcraft_cannot_duplicate', __( 'Permission denied.', 'rowcraft' ), [ 'status' => 403 ] );
+			return new WP_Error( 'datadeck_cannot_duplicate', __( 'Permission denied.', 'datadeck' ), [ 'status' => 403 ] );
 		}
 
 		$source = get_post( $record_id );
 		if ( ! $source instanceof WP_Post ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Record not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Record not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$new_id = wp_insert_post(
 			[
 				'post_type'      => $source->post_type,
-				'post_title'     => $source->post_title . ' ' . __( '(Copy)', 'rowcraft' ),
+				'post_title'     => $source->post_title . ' ' . __( '(Copy)', 'datadeck' ),
 				'post_content'   => $source->post_content,
 				'post_excerpt'   => $source->post_excerpt,
 				'post_status'    => 'draft',
@@ -259,7 +259,7 @@ class PostEntityAdapter implements EntityAdapterInterface {
 			if ( ! $this->can_delete( $id ) ) {
 				$errors[] = [
 					'id'      => $id,
-					'message' => __( 'Permission denied.', 'rowcraft' ),
+					'message' => __( 'Permission denied.', 'datadeck' ),
 				];
 				continue;
 			}
@@ -267,7 +267,7 @@ class PostEntityAdapter implements EntityAdapterInterface {
 			if ( false === $res || null === $res ) {
 				$errors[] = [
 					'id'      => $id,
-					'message' => __( 'Failed to move to trash.', 'rowcraft' ),
+					'message' => __( 'Failed to move to trash.', 'datadeck' ),
 				];
 			} else {
 				$deleted[] = $id;

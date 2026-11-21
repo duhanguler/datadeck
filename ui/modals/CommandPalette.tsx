@@ -68,14 +68,14 @@ export default function CommandPalette( { commands, onClose }: CommandPalettePro
 					ref={ inputRef }
 					type="text"
 					className="rc-palette-input"
-					placeholder={ __( 'Jump to entity, audit lens, bulk edit, density, or export…', 'rowcraft' ) }
+					placeholder={ __( 'Jump to entity, audit lens, bulk edit, density, or export…', 'datadeck' ) }
 					value={ query }
 					onChange={ ( e ) => setQuery( e.target.value ) }
 				/>
 				<div className="rc-palette-list">
 					{ filtered.length === 0 ? (
 						<div style={ { padding: '16px', textAlign: 'center', fontSize: '12.5px', color: 'var(--rc-ink-muted)' } }>
-							{ __( 'No matching commands.', 'rowcraft' ) }
+							{ __( 'No matching commands.', 'datadeck' ) }
 						</div>
 					) : (
 						filtered.map( ( cmd, idx ) => (

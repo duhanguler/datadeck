@@ -377,7 +377,7 @@ export function SpreadsheetGrid( {
 						<input
 							type="checkbox"
 							checked={ allSelected }
-							aria-label={ __( 'Select all visible rows', 'rowcraft' ) }
+							aria-label={ __( 'Select all visible rows', 'datadeck' ) }
 							onChange={ () => onToggleSelectAll( allSelected ? [] : allIds ) }
 						/>
 					</div>
@@ -421,7 +421,7 @@ export function SpreadsheetGrid( {
 				{/* Virtualized Body — renders only ~30 visible DOM rows even at 500/page */}
 				{ flatRows.length === 0 && ! loading ? (
 					<div className="rc-empty-state">
-						<span>{ __( 'No matching records found.', 'rowcraft' ) }</span>
+						<span>{ __( 'No matching records found.', 'datadeck' ) }</span>
 					</div>
 				) : (
 					<div

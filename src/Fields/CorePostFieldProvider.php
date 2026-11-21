@@ -2,16 +2,16 @@
 /**
  * Core WordPress Post, Page, CPT, and Taxonomy Field Provider.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 use WP_Post;
 
@@ -47,33 +47,33 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 		$status_options = [
 			[
 				'value' => 'publish',
-				'label' => __( 'Published', 'rowcraft' ),
+				'label' => __( 'Published', 'datadeck' ),
 			],
 			[
 				'value' => 'draft',
-				'label' => __( 'Draft', 'rowcraft' ),
+				'label' => __( 'Draft', 'datadeck' ),
 			],
 			[
 				'value' => 'pending',
-				'label' => __( 'Pending Review', 'rowcraft' ),
+				'label' => __( 'Pending Review', 'datadeck' ),
 			],
 			[
 				'value' => 'private',
-				'label' => __( 'Private', 'rowcraft' ),
+				'label' => __( 'Private', 'datadeck' ),
 			],
 			[
 				'value' => 'future',
-				'label' => __( 'Scheduled', 'rowcraft' ),
+				'label' => __( 'Scheduled', 'datadeck' ),
 			],
 		];
 
-		$include_opts   = \RowCraft\Plugin::instance()->fields()->should_include_options();
+		$include_opts   = \DataDeck\Plugin::instance()->fields()->should_include_options();
 		$author_options = $include_opts ? $this->get_author_options() : [];
 
 		$fields = [
 			new FieldDefinition(
 				id: 'title',
-				label: __( 'Title', 'rowcraft' ),
+				label: __( 'Title', 'datadeck' ),
 				type: 'text',
 				group: 'core',
 				provider: $this->get_id(),
@@ -89,7 +89,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'featured_image',
-				label: __( 'Image', 'rowcraft' ),
+				label: __( 'Image', 'datadeck' ),
 				type: 'media',
 				group: 'core',
 				provider: $this->get_id(),
@@ -103,7 +103,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'id',
-				label: __( 'ID', 'rowcraft' ),
+				label: __( 'ID', 'datadeck' ),
 				type: 'integer',
 				group: 'core',
 				provider: $this->get_id(),
@@ -118,7 +118,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'slug',
-				label: __( 'Slug', 'rowcraft' ),
+				label: __( 'Slug', 'datadeck' ),
 				type: 'slug',
 				group: 'core',
 				provider: $this->get_id(),
@@ -131,7 +131,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'status',
-				label: __( 'Status', 'rowcraft' ),
+				label: __( 'Status', 'datadeck' ),
 				type: 'select',
 				group: 'core',
 				provider: $this->get_id(),
@@ -144,7 +144,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'author',
-				label: __( 'Author', 'rowcraft' ),
+				label: __( 'Author', 'datadeck' ),
 				type: 'select',
 				group: 'core',
 				provider: $this->get_id(),
@@ -157,7 +157,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'date',
-				label: __( 'Published Date', 'rowcraft' ),
+				label: __( 'Published Date', 'datadeck' ),
 				type: 'datetime',
 				group: 'core',
 				provider: $this->get_id(),
@@ -170,7 +170,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'modified',
-				label: __( 'Last Modified', 'rowcraft' ),
+				label: __( 'Last Modified', 'datadeck' ),
 				type: 'datetime',
 				group: 'core',
 				provider: $this->get_id(),
@@ -183,7 +183,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'excerpt',
-				label: __( 'Excerpt', 'rowcraft' ),
+				label: __( 'Excerpt', 'datadeck' ),
 				type: 'textarea',
 				group: 'core',
 				provider: $this->get_id(),
@@ -195,7 +195,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'word_count',
-				label: __( 'Words', 'rowcraft' ),
+				label: __( 'Words', 'datadeck' ),
 				type: 'integer',
 				group: 'core',
 				provider: $this->get_id(),
@@ -209,7 +209,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'order',
-				label: __( 'Menu Order', 'rowcraft' ),
+				label: __( 'Menu Order', 'datadeck' ),
 				type: 'integer',
 				group: 'core',
 				provider: $this->get_id(),
@@ -223,7 +223,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'comment_status',
-				label: __( 'Comments', 'rowcraft' ),
+				label: __( 'Comments', 'datadeck' ),
 				type: 'select',
 				group: 'core',
 				provider: $this->get_id(),
@@ -235,11 +235,11 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 				options: [
 					[
 						'value' => 'open',
-						'label' => __( 'Open', 'rowcraft' ),
+						'label' => __( 'Open', 'datadeck' ),
 					],
 					[
 						'value' => 'closed',
-						'label' => __( 'Closed', 'rowcraft' ),
+						'label' => __( 'Closed', 'datadeck' ),
 					],
 				],
 			),
@@ -418,21 +418,21 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 				$allowed = [ 'publish', 'draft', 'pending', 'private', 'future', 'trash' ];
 				$status  = sanitize_key( (string) $value );
 				if ( ! in_array( $status, $allowed, true ) ) {
-					return new WP_Error( 'rowcraft_invalid_status', __( 'Invalid post status.', 'rowcraft' ), [ 'status' => 400 ] );
+					return new WP_Error( 'datadeck_invalid_status', __( 'Invalid post status.', 'datadeck' ), [ 'status' => 400 ] );
 				}
 				$update['post_status'] = $status;
 				break;
 			case 'author':
 				$author_id = (int) $value;
 				if ( $author_id <= 0 || ! get_userdata( $author_id ) ) {
-					return new WP_Error( 'rowcraft_invalid_author', __( 'Invalid author ID.', 'rowcraft' ), [ 'status' => 400 ] );
+					return new WP_Error( 'datadeck_invalid_author', __( 'Invalid author ID.', 'datadeck' ), [ 'status' => 400 ] );
 				}
 				$update['post_author'] = $author_id;
 				break;
 			case 'date':
 				$ts = strtotime( (string) $value );
 				if ( false === $ts ) {
-					return new WP_Error( 'rowcraft_invalid_date', __( 'Invalid date format.', 'rowcraft' ), [ 'status' => 400 ] );
+					return new WP_Error( 'datadeck_invalid_date', __( 'Invalid date format.', 'datadeck' ), [ 'status' => 400 ] );
 				}
 				$formatted               = gmdate( 'Y-m-d H:i:s', $ts );
 				$update['post_date']     = $formatted;
@@ -449,7 +449,7 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 				$update['comment_status'] = 'open' === $value ? 'open' : 'closed';
 				break;
 			default:
-				return new WP_Error( 'rowcraft_unsupported_field', __( 'Unsupported core field.', 'rowcraft' ), [ 'status' => 400 ] );
+				return new WP_Error( 'datadeck_unsupported_field', __( 'Unsupported core field.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$result = wp_update_post( $update, true );

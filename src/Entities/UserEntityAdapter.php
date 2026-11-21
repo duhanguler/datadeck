@@ -2,18 +2,18 @@
 /**
  * WordPress User Entity Adapter.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Entities;
+namespace DataDeck\Entities;
 
-use RowCraft\Contracts\EntityAdapterInterface;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Query\QueryResult;
-use RowCraft\Query\SelectiveHydrator;
+use DataDeck\Contracts\EntityAdapterInterface;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Query\QueryResult;
+use DataDeck\Query\SelectiveHydrator;
 use WP_Error;
 use WP_User_Query;
 
@@ -33,11 +33,11 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function get_label(): string {
-		return __( 'User', 'rowcraft' );
+		return __( 'User', 'datadeck' );
 	}
 
 	public function get_plural_label(): string {
-		return __( 'Users', 'rowcraft' );
+		return __( 'Users', 'datadeck' );
 	}
 
 	public function get_group(): string {
@@ -160,11 +160,11 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function create_record( array $data ): int|WP_Error {
-		return new WP_Error( 'rowcraft_unsupported', __( 'Create users via Users > Add New.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_unsupported', __( 'Create users via Users > Add New.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
 	public function duplicate_record( int $record_id ): int|WP_Error {
-		return new WP_Error( 'rowcraft_unsupported', __( 'Users cannot be duplicated.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_unsupported', __( 'Users cannot be duplicated.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
 	public function delete_records( array $ids ): array {
@@ -173,7 +173,7 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 			'errors'  => array_map(
 				static fn( int $id ): array => [
 					'id'      => $id,
-					'message' => __( 'Delete users via the Users screen for content reassignment.', 'rowcraft' ),
+					'message' => __( 'Delete users via the Users screen for content reassignment.', 'datadeck' ),
 				],
 				$ids
 			),

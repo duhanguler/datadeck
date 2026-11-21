@@ -2,14 +2,14 @@
 /**
  * Field Provider contract for Core, Meta, ACF/SCF, MetaBox, WooCommerce, and SEO integrations.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Contracts;
+namespace DataDeck\Contracts;
 
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {

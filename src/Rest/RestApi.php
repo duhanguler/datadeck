@@ -1,24 +1,24 @@
 <?php
 /**
- * REST API Controller for RowCraft (/wp-json/rowcraft/v1/).
+ * REST API Controller for DataDeck (/wp-json/datadeck/v1/).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Rest;
+namespace DataDeck\Rest;
 
-use RowCraft\Bulk\BulkOperationEngine;
-use RowCraft\Bulk\CampaignScheduler;
-use RowCraft\Entities\EntityRegistry;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Formula\ExpressionEngine;
-use RowCraft\History\HistoryService;
-use RowCraft\Lenses\LensRegistry;
-use RowCraft\Query\KeysetStreamExporter;
-use RowCraft\Query\QueryRequest;
-use RowCraft\Sync\ViewSyncService;
+use DataDeck\Bulk\BulkOperationEngine;
+use DataDeck\Bulk\CampaignScheduler;
+use DataDeck\Entities\EntityRegistry;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Formula\ExpressionEngine;
+use DataDeck\History\HistoryService;
+use DataDeck\Lenses\LensRegistry;
+use DataDeck\Query\KeysetStreamExporter;
+use DataDeck\Query\QueryRequest;
+use DataDeck\Sync\ViewSyncService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class RestApi {
 
-	public const NAMESPACE = 'rowcraft/v1';
+	public const NAMESPACE = 'datadeck/v1';
 
 	public function __construct(
 		private readonly EntityRegistry $entities,
@@ -178,7 +178,7 @@ final class RestApi {
 			]
 		);
 
-		// Saved views & rowcraft-json sync.
+		// Saved views & datadeck-json sync.
 		register_rest_route(
 			self::NAMESPACE,
 			'/views/(?P<entity>[a-z0-9_\-]+)',
@@ -264,7 +264,7 @@ final class RestApi {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$field_map = $this->fields->get_fields_for_entity( $entity );
@@ -296,7 +296,7 @@ final class RestApi {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$query_req = QueryRequest::from_array( $entity, $request->get_params() );
@@ -312,7 +312,7 @@ final class RestApi {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$data = $request->get_json_params();
@@ -345,7 +345,7 @@ final class RestApi {
 		$id      = (int) $request->get_param( 'id' );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$new_id = $adapter->duplicate_record( $id );
@@ -372,7 +372,7 @@ final class RestApi {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$body = $request->get_json_params();
@@ -388,7 +388,7 @@ final class RestApi {
 		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$body   = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
-			return new WP_Error( 'rowcraft_bad_payload', __( 'Invalid JSON body.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid JSON body.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$mode = sanitize_key( (string) ( $body['mode'] ?? 'inline' ) );
@@ -423,7 +423,7 @@ final class RestApi {
 			return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
 		}
 
-		return new WP_Error( 'rowcraft_invalid_mode', __( 'Unsupported batch mode.', 'rowcraft' ), [ 'status' => 400 ] );
+		return new WP_Error( 'datadeck_invalid_mode', __( 'Unsupported batch mode.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
 	/**
@@ -483,7 +483,7 @@ final class RestApi {
 		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$body   = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
-			return new WP_Error( 'rowcraft_bad_payload', __( 'Invalid JSON body.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid JSON body.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$res = $this->scheduler->schedule(
@@ -515,7 +515,7 @@ final class RestApi {
 		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$body   = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
-			return new WP_Error( 'rowcraft_bad_payload', __( 'Invalid view payload.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid view payload.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 		$res = $this->views->save_view( $entity, $body );
 		return is_wp_error( $res ) ? $res : new WP_REST_Response( [ 'view' => $res ], 200 );
@@ -539,7 +539,7 @@ final class RestApi {
 	public function save_preferences( WP_REST_Request $request ): WP_REST_Response {
 		$body    = $request->get_json_params();
 		$uid     = get_current_user_id();
-		$current = get_user_meta( $uid, 'rowcraft_preferences', true );
+		$current = get_user_meta( $uid, 'datadeck_preferences', true );
 		$prefs   = is_array( $current ) ? $current : [];
 
 		if ( is_array( $body ) ) {
@@ -558,7 +558,7 @@ final class RestApi {
 			}
 		}
 
-		update_user_meta( $uid, 'rowcraft_preferences', $prefs );
+		update_user_meta( $uid, 'datadeck_preferences', $prefs );
 
 		return new WP_REST_Response( [ 'preferences' => $prefs ], 200 );
 	}
@@ -572,7 +572,7 @@ final class RestApi {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_not_found', __( 'Entity not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		$query_req = QueryRequest::from_array( $entity, $request->get_params() );

@@ -2,12 +2,12 @@
 /**
  * Validated Query Request DTO for record retrieval, filtering, sorting, and projection.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Query;
+namespace DataDeck\Query;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

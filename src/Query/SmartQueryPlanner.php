@@ -7,14 +7,14 @@
  *  - Eliminates SQL_CALC_FOUND_ROWS using two-step lean ID selection + fast COUNT(*).
  *  - Supports AND/OR filter groups, isEmpty/isNotEmpty, between, and inLastDays.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Query;
+namespace DataDeck\Query;
 
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Schema\FieldDefinition;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

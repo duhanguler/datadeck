@@ -1,8 +1,8 @@
 <?php
 /**
- * Clean uninstallation routine for RowCraft.
+ * Clean uninstallation routine for DataDeck.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
@@ -11,28 +11,28 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-$rowcraft_settings = get_option( 'rowcraft_settings', [] );
-$rowcraft_keep     = is_array( $rowcraft_settings ) && ! empty( $rowcraft_settings['keep_data_on_uninstall'] );
+$datadeck_settings = get_option( 'datadeck_settings', [] );
+$datadeck_keep     = is_array( $datadeck_settings ) && ! empty( $datadeck_settings['keep_data_on_uninstall'] );
 
-if ( $rowcraft_keep ) {
+if ( $datadeck_keep ) {
 	return;
 }
 
 global $wpdb;
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}rowcraft_changes" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}datadeck_changes" );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}rowcraft_batches" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}datadeck_batches" );
 
-delete_option( 'rowcraft_db_version' );
-delete_option( 'rowcraft_settings' );
-delete_option( 'rowcraft_views' );
+delete_option( 'datadeck_db_version' );
+delete_option( 'datadeck_settings' );
+delete_option( 'datadeck_views' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
-		$wpdb->esc_like( 'rowcraft_' ) . '%'
+		$wpdb->esc_like( 'datadeck_' ) . '%'
 	)
 );

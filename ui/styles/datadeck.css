@@ -1,5 +1,5 @@
 /*
- * RowCraft Design System
+ * DataDeck Design System
  * Built strictly on WordPress 7.0 --wpds-* design tokens and --wp-admin-theme-color.
  * Rules: Zero gradients, zero emojis, zero decorative cards, 0px layout-shift editing,
  * strict 4px baseline geometry, tabular numerals for numeric columns.
@@ -46,25 +46,25 @@
 }
 
 /* Full-bleed wp-admin integration */
-body.rowcraft-fullscreen-admin #wpcontent {
+body.datadeck-fullscreen-admin #wpcontent {
 	padding-left: 0;
 }
 
-body.rowcraft-fullscreen-admin #wpbody-content {
+body.datadeck-fullscreen-admin #wpbody-content {
 	padding-bottom: 0;
 }
 
-body.rowcraft-fullscreen-admin #wpfooter {
+body.datadeck-fullscreen-admin #wpfooter {
 	display: none;
 }
 
-body.rowcraft-fullscreen-admin .notice,
-body.rowcraft-fullscreen-admin .update-nag,
-body.rowcraft-fullscreen-admin .updated {
+body.datadeck-fullscreen-admin .notice,
+body.datadeck-fullscreen-admin .update-nag,
+body.datadeck-fullscreen-admin .updated {
 	display: none !important;
 }
 
-.rowcraft-root {
+.datadeck-root {
 	font-family: var(--rc-font-sans);
 	color: var(--rc-ink);
 	background: var(--rc-bg-surface);
@@ -76,25 +76,25 @@ body.rowcraft-fullscreen-admin .updated {
 	-webkit-font-smoothing: antialiased;
 }
 
-.rowcraft-root *,
-.rowcraft-root *::before,
-.rowcraft-root *::after {
+.datadeck-root *,
+.datadeck-root *::before,
+.datadeck-root *::after {
 	box-sizing: border-box;
 }
 
-.rowcraft-root[data-density="compact"] {
+.datadeck-root[data-density="compact"] {
 	--rc-row-h: 30px;
 	--rc-cell-px: 8px;
 	--rc-cell-fs: 12.5px;
 }
 
-.rowcraft-root[data-density="default"] {
+.datadeck-root[data-density="default"] {
 	--rc-row-h: 36px;
 	--rc-cell-px: 10px;
 	--rc-cell-fs: 13px;
 }
 
-.rowcraft-root[data-density="comfortable"] {
+.datadeck-root[data-density="comfortable"] {
 	--rc-row-h: 48px;
 	--rc-cell-px: 12px;
 	--rc-cell-fs: 13px;
@@ -145,8 +145,8 @@ body.rowcraft-fullscreen-admin .updated {
 	flex-shrink: 0;
 }
 
-body.wp-core-ui .rowcraft-root select.rc-entity-select,
-.rowcraft-root select.rc-entity-select {
+body.wp-core-ui .datadeck-root select.rc-entity-select,
+.datadeck-root select.rc-entity-select {
 	appearance: none !important;
 	-webkit-appearance: none !important;
 	height: 28px;
@@ -163,12 +163,12 @@ body.wp-core-ui .rowcraft-root select.rc-entity-select,
 	box-shadow: none;
 }
 
-.rowcraft-root select.rc-entity-select:hover {
+.datadeck-root select.rc-entity-select:hover {
 	border-color: var(--rc-border-strong);
 	color: var(--rc-ink);
 }
 
-.rowcraft-root select.rc-entity-select:focus {
+.datadeck-root select.rc-entity-select:focus {
 	outline: none;
 	border-color: var(--rc-accent);
 	box-shadow: 0 0 0 1px var(--rc-accent);
@@ -192,7 +192,7 @@ body.wp-core-ui .rowcraft-root select.rc-entity-select,
 	z-index: 2;
 }
 
-.rowcraft-root input.rc-search-input {
+.datadeck-root input.rc-search-input {
 	width: 100%;
 	height: 28px;
 	min-height: 28px;
@@ -208,7 +208,7 @@ body.wp-core-ui .rowcraft-root select.rc-entity-select,
 	transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-.rowcraft-root input.rc-search-input:focus {
+.datadeck-root input.rc-search-input:focus {
 	outline: none;
 	background: var(--rc-bg-surface);
 	border-color: var(--rc-accent);

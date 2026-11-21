@@ -1,5 +1,5 @@
 {
-  "name": "rowcraft",
+  "name": "datadeck",
   "version": "1.0.0",
   "description": "Modern admin columns, zero-shift inline editor, AST bulk formula engine, and one-click rollback for WordPress & WooCommerce.",
   "license": "GPL-2.0-or-later",
@@ -14,7 +14,7 @@
     "env:start": "wp-env start",
     "env:stop": "wp-env stop",
     "env:clean": "wp-env clean all",
-    "env:seed": "wp-env run cli wp eval-file /var/www/html/wp-content/plugins/rowcraft/scripts/seed-demo-data.php",
+    "env:seed": "wp-env run cli wp eval-file /var/www/html/wp-content/plugins/datadeck/scripts/seed-demo-data.php",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -139,8 +139,8 @@ export const InlineCell = memo( function InlineCell( {
 			const wpMedia = window.wp?.media;
 			if ( wpMedia ) {
 				const frame = wpMedia( {
-					title: __( 'Select Media', 'rowcraft' ),
-					button: { text: __( 'Use Selected', 'rowcraft' ) },
+					title: __( 'Select Media', 'datadeck' ),
+					button: { text: __( 'Use Selected', 'datadeck' ) },
 					multiple: false,
 				} );
 				frame.on( 'select', () => {
@@ -320,7 +320,7 @@ export const InlineCell = memo( function InlineCell( {
 				<span
 					className={ `rc-cell-text ${ formatted === '—' ? 'rc-cell-muted' : '' }` }
 					style={ isSaleAnomaly ? { color: 'var(--rc-danger)', fontWeight: 600 } : undefined }
-					title={ isSaleAnomaly ? __( 'Sale price is greater than or equal to regular price', 'rowcraft' ) : undefined }
+					title={ isSaleAnomaly ? __( 'Sale price is greater than or equal to regular price', 'datadeck' ) : undefined }
 				>
 					{ formatted }
 				</span>
@@ -337,7 +337,7 @@ export const InlineCell = memo( function InlineCell( {
 					<button
 						type="button"
 						className="rc-var-toggle"
-						aria-label={ __( 'Toggle variations', 'rowcraft' ) }
+						aria-label={ __( 'Toggle variations', 'datadeck' ) }
 						onClick={ ( e ) => {
 							e.stopPropagation();
 							onToggleVariations( record.id );
@@ -350,7 +350,7 @@ export const InlineCell = memo( function InlineCell( {
 					{ text || '—' }
 				</span>
 				{ isPrimary && Number( record._varCount || 0 ) > 0 && (
-					<span className="rc-var-count" title={ __( 'Variations', 'rowcraft' ) }>
+					<span className="rc-var-count" title={ __( 'Variations', 'datadeck' ) }>
 						{ record._varCount }
 					</span>
 				) }
@@ -365,7 +365,7 @@ export const InlineCell = memo( function InlineCell( {
 							<button
 								type="button"
 								className="rc-icon-btn"
-								title={ __( 'Inspect record', 'rowcraft' ) }
+								title={ __( 'Inspect record', 'datadeck' ) }
 								onClick={ () => onInspectRow( record ) }
 							>
 								<Icon icon={ drawerRight } size={ 14 } />
@@ -375,7 +375,7 @@ export const InlineCell = memo( function InlineCell( {
 							<button
 								type="button"
 								className="rc-icon-btn"
-								title={ __( 'Duplicate row', 'rowcraft' ) }
+								title={ __( 'Duplicate row', 'datadeck' ) }
 								onClick={ () => onDuplicateRow( record.id ) }
 							>
 								<Icon icon={ copy } size={ 14 } />
@@ -387,7 +387,7 @@ export const InlineCell = memo( function InlineCell( {
 								href={ record._editUrl }
 								target="_blank"
 								rel="noreferrer"
-								title={ __( 'Open in WordPress editor', 'rowcraft' ) }
+								title={ __( 'Open in WordPress editor', 'datadeck' ) }
 							>
 								<Icon icon={ external } size={ 14 } />
 							</a>
@@ -442,7 +442,7 @@ export const InlineCell = memo( function InlineCell( {
 					<div className="rc-popover-list">
 						{ field.options.length === 0 ? (
 							<div style={ { padding: '8px', fontSize: '12px', color: 'var(--rc-ink-muted)' } }>
-								{ __( 'No terms available.', 'rowcraft' ) }
+								{ __( 'No terms available.', 'datadeck' ) }
 							</div>
 						) : (
 							field.options.map( ( opt ) => {
@@ -467,10 +467,10 @@ export const InlineCell = memo( function InlineCell( {
 					</div>
 					<div className="rc-modal-footer" style={ { padding: '6px 8px' } }>
 						<button type="button" className="rc-btn rc-btn--ghost" onClick={ onCancelEdit }>
-							{ __( 'Cancel', 'rowcraft' ) }
+							{ __( 'Cancel', 'datadeck' ) }
 						</button>
 						<button type="button" className="rc-btn rc-btn--primary" onClick={ commitTerms }>
-							{ __( 'Apply', 'rowcraft' ) }
+							{ __( 'Apply', 'datadeck' ) }
 						</button>
 					</div>
 				</div>

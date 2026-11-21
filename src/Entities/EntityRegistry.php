@@ -2,17 +2,17 @@
 /**
  * Central Entity Adapter Registry discovering Posts, Pages, CPTs, Media, Users, and WooCommerce.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Entities;
+namespace DataDeck\Entities;
 
-use RowCraft\Contracts\EntityAdapterInterface;
-use RowCraft\Fields\FieldRegistry;
-use RowCraft\Query\SelectiveHydrator;
-use RowCraft\Query\SmartQueryPlanner;
+use DataDeck\Contracts\EntityAdapterInterface;
+use DataDeck\Fields\FieldRegistry;
+use DataDeck\Query\SelectiveHydrator;
+use DataDeck\Query\SmartQueryPlanner;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -77,7 +77,7 @@ final class EntityRegistry {
 		 *
 		 * @param EntityRegistry $registry Entity registry instance.
 		 */
-		do_action( 'rowcraft_register_entities', $this );
+		do_action( 'datadeck_register_entities', $this );
 	}
 
 	/**

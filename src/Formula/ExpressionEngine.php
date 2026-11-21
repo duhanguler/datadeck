@@ -1,14 +1,14 @@
 <?php
 /**
- * Safe recursive-descent AST parser and evaluator for RowCraft bulk formulas and templates.
+ * Safe recursive-descent AST parser and evaluator for DataDeck bulk formulas and templates.
  * Completely eliminates PHP eval() while supporting arithmetic, conditionals, and string helpers.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Formula;
+namespace DataDeck\Formula;
 
 use InvalidArgumentException;
 

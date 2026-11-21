@@ -2,15 +2,15 @@
 /**
  * Unit tests for QueryRequest sanitization and bounds clamping.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Tests\Unit;
+namespace DataDeck\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use RowCraft\Query\QueryRequest;
+use DataDeck\Query\QueryRequest;
 
 final class QueryRequestTest extends TestCase {
 

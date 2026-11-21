@@ -20,29 +20,29 @@ if ( ! fs.existsSync( BUILD_DIR ) ) {
 	process.exit( 1 );
 }
 
-const mainJs = path.join( BUILD_DIR, 'rowcraft-app.js' );
-const toggleJs = path.join( BUILD_DIR, 'rowcraft-toggle.js' );
-const mainCss = path.join( BUILD_DIR, 'rowcraft-app.css' );
+const mainJs = path.join( BUILD_DIR, 'datadeck-app.js' );
+const toggleJs = path.join( BUILD_DIR, 'datadeck-toggle.js' );
+const mainCss = path.join( BUILD_DIR, 'datadeck-app.css' );
 
 let failed = false;
 
 const appStats = gzipSizeKb( mainJs );
-console.log( `rowcraft-app.js    : ${ appStats.rawKb } KB raw | ${ appStats.gzipKb } KB gzip (budget <= ${ INITIAL_JS_BUDGET_KB } KB)` );
+console.log( `datadeck-app.js    : ${ appStats.rawKb } KB raw | ${ appStats.gzipKb } KB gzip (budget <= ${ INITIAL_JS_BUDGET_KB } KB)` );
 if ( appStats.gzipKb > INITIAL_JS_BUDGET_KB ) {
-	console.error( `FAIL: rowcraft-app.js exceeds ${ INITIAL_JS_BUDGET_KB } KB gzip budget!` );
+	console.error( `FAIL: datadeck-app.js exceeds ${ INITIAL_JS_BUDGET_KB } KB gzip budget!` );
 	failed = true;
 }
 
 const toggleStats = gzipSizeKb( toggleJs );
-console.log( `rowcraft-toggle.js : ${ toggleStats.rawKb } KB raw | ${ toggleStats.gzipKb } KB gzip (budget <= ${ TOGGLE_JS_BUDGET_KB } KB)` );
+console.log( `datadeck-toggle.js : ${ toggleStats.rawKb } KB raw | ${ toggleStats.gzipKb } KB gzip (budget <= ${ TOGGLE_JS_BUDGET_KB } KB)` );
 if ( toggleStats.gzipKb > TOGGLE_JS_BUDGET_KB ) {
-	console.error( `FAIL: rowcraft-toggle.js exceeds ${ TOGGLE_JS_BUDGET_KB } KB gzip budget!` );
+	console.error( `FAIL: datadeck-toggle.js exceeds ${ TOGGLE_JS_BUDGET_KB } KB gzip budget!` );
 	failed = true;
 }
 
 if ( fs.existsSync( mainCss ) ) {
 	const cssStats = gzipSizeKb( mainCss );
-	console.log( `rowcraft-app.css   : ${ cssStats.rawKb } KB raw | ${ cssStats.gzipKb } KB gzip` );
+	console.log( `datadeck-app.css   : ${ cssStats.rawKb } KB raw | ${ cssStats.gzipKb } KB gzip` );
 }
 
 const chunksDir = path.join( BUILD_DIR, 'chunks' );

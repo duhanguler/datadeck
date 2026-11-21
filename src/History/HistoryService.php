@@ -5,15 +5,15 @@
  * Records minimal scalar/JSON delta snapshots per mutation batch and restores
  * prior values cleanly while recording an auditable rollback batch.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\History;
+namespace DataDeck\History;
 
-use RowCraft\Entities\EntityRegistry;
-use RowCraft\Fields\FieldRegistry;
+use DataDeck\Entities\EntityRegistry;
+use DataDeck\Fields\FieldRegistry;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -185,7 +185,7 @@ final class HistoryService {
 					'summary'       => (string) $row->summary,
 					'affectedCount' => (int) $row->affected_count,
 					'status'        => (string) $row->status,
-					'userName'      => $user ? (string) $user->display_name : __( 'System', 'rowcraft' ),
+					'userName'      => $user ? (string) $user->display_name : __( 'System', 'datadeck' ),
 					'scheduledAt'   => $row->scheduled_at,
 					'revertAt'      => $row->revert_at,
 					'createdAt'     => (string) $row->created_at,
@@ -212,7 +212,7 @@ final class HistoryService {
 		);
 
 		if ( ! $batch ) {
-			return new WP_Error( 'rowcraft_batch_not_found', __( 'History batch not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_batch_not_found', __( 'History batch not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -267,17 +267,17 @@ final class HistoryService {
 		);
 
 		if ( ! $batch ) {
-			return new WP_Error( 'rowcraft_batch_not_found', __( 'Batch not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_batch_not_found', __( 'Batch not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		if ( 'rolled_back' === $batch->status || 'reverted' === $batch->status ) {
-			return new WP_Error( 'rowcraft_already_rolled_back', __( 'This batch has already been rolled back.', 'rowcraft' ), [ 'status' => 409 ] );
+			return new WP_Error( 'datadeck_already_rolled_back', __( 'This batch has already been rolled back.', 'datadeck' ), [ 'status' => 409 ] );
 		}
 
 		$entity_slug = (string) $batch->entity_type;
 		$adapter     = $this->entities->get( $entity_slug );
 		if ( ! $adapter ) {
-			return new WP_Error( 'rowcraft_entity_unavailable', __( 'Entity is not available for rollback.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_entity_unavailable', __( 'Entity is not available for rollback.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		// Reverse order so multiple edits to the same cell in one batch restore to the original value.
@@ -295,7 +295,7 @@ final class HistoryService {
 			'rollback',
 			sprintf(
 				/* translators: %s: original batch summary */
-				__( 'Rollback: %s', 'rowcraft' ),
+				__( 'Rollback: %s', 'datadeck' ),
 				(string) $batch->summary
 			)
 		);
@@ -313,7 +313,7 @@ final class HistoryService {
 					$errors[] = [
 						'id'      => $oid,
 						'field'   => $field_key,
-						'message' => __( 'Permission denied.', 'rowcraft' ),
+						'message' => __( 'Permission denied.', 'datadeck' ),
 					];
 					continue;
 				}
@@ -360,7 +360,7 @@ final class HistoryService {
 	public function prune_expired(): int {
 		global $wpdb;
 
-		$settings = get_option( 'rowcraft_settings', [] );
+		$settings = get_option( 'datadeck_settings', [] );
 		$days     = is_array( $settings ) && ! empty( $settings['history_retention_days'] )
 			? max( 1, (int) $settings['history_retention_days'] )
 			: self::DEFAULT_RETENTION_DAYS;

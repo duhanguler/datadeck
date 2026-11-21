@@ -16,7 +16,7 @@ import type {
 	StagedEdit,
 } from '../types';
 
-export const STORE_NAME = 'rowcraft/workspace';
+export const STORE_NAME = 'datadeck/workspace';
 
 export interface WorkspaceState {
 	entity: string;
@@ -67,7 +67,7 @@ export interface WorkspaceState {
 	toast: { message: string; undoUuid?: string } | null;
 }
 
-const boot = window.rowcraftBootstrap;
+const boot = window.datadeckBootstrap;
 
 const DEFAULT_STATE: WorkspaceState = {
 	entity: boot?.initialEntity || 'post',

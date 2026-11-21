@@ -5,17 +5,17 @@
  * Exposes safe, auditable, rollbackable query & bulk capabilities to WordPress Core's
  * native Abilities API & MCP Adapters without adding third-party dependencies.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Abilities;
+namespace DataDeck\Abilities;
 
-use RowCraft\Bulk\BulkOperationEngine;
-use RowCraft\Entities\EntityRegistry;
-use RowCraft\History\HistoryService;
-use RowCraft\Query\QueryRequest;
+use DataDeck\Bulk\BulkOperationEngine;
+use DataDeck\Entities\EntityRegistry;
+use DataDeck\History\HistoryService;
+use DataDeck\Query\QueryRequest;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -38,7 +38,7 @@ final class AbilityRegistrar {
 	}
 
 	/**
-	 * Register RowCraft core abilities.
+	 * Register DataDeck core abilities.
 	 */
 	public function register_abilities(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
@@ -46,10 +46,10 @@ final class AbilityRegistrar {
 		}
 
 		wp_register_ability(
-			'rowcraft/query-records',
+			'datadeck/query-records',
 			[
-				'label'               => __( 'Query RowCraft Records', 'rowcraft' ),
-				'description'         => __( 'Query WordPress posts, CPTs, media, users, or WooCommerce products/orders with projected columns and filters.', 'rowcraft' ),
+				'label'               => __( 'Query DataDeck Records', 'datadeck' ),
+				'description'         => __( 'Query WordPress posts, CPTs, media, users, or WooCommerce products/orders with projected columns and filters.', 'datadeck' ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -68,7 +68,7 @@ final class AbilityRegistrar {
 					$entity  = sanitize_key( (string) ( $input['entity'] ?? 'post' ) );
 					$adapter = $this->entities->get( $entity );
 					if ( ! $adapter || ! $adapter->can_read() ) {
-						return new WP_Error( 'rowcraft_forbidden', __( 'Entity unavailable or forbidden.', 'rowcraft' ) );
+						return new WP_Error( 'datadeck_forbidden', __( 'Entity unavailable or forbidden.', 'datadeck' ) );
 					}
 					return $adapter->query( QueryRequest::from_array( $entity, $input ) )->to_array();
 				},
@@ -76,10 +76,10 @@ final class AbilityRegistrar {
 		);
 
 		wp_register_ability(
-			'rowcraft/preview-bulk-edit',
+			'datadeck/preview-bulk-edit',
 			[
-				'label'               => __( 'Preview Bulk Edit (Dry-Run)', 'rowcraft' ),
-				'description'         => __( 'Simulate a RowCraft AST formula or bulk transformation on matching records without modifying the database.', 'rowcraft' ),
+				'label'               => __( 'Preview Bulk Edit (Dry-Run)', 'datadeck' ),
+				'description'         => __( 'Simulate a DataDeck AST formula or bulk transformation on matching records without modifying the database.', 'datadeck' ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [
@@ -101,10 +101,10 @@ final class AbilityRegistrar {
 		);
 
 		wp_register_ability(
-			'rowcraft/rollback-batch',
+			'datadeck/rollback-batch',
 			[
-				'label'               => __( 'Rollback RowCraft Batch', 'rowcraft' ),
-				'description'         => __( 'Restore all field values modified by a RowCraft batch UUID back to their prior snapshot.', 'rowcraft' ),
+				'label'               => __( 'Rollback DataDeck Batch', 'datadeck' ),
+				'description'         => __( 'Restore all field values modified by a DataDeck batch UUID back to their prior snapshot.', 'datadeck' ),
 				'input_schema'        => [
 					'type'       => 'object',
 					'properties' => [

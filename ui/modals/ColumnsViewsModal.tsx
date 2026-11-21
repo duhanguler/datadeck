@@ -119,7 +119,7 @@ export default function ColumnsViewsModal( {
 
 	const handleSyncJson = async () => {
 		const res = await syncViewsFromJson();
-		setSyncMessage( `${ res.synced } view(s) synced from rowcraft-json/.` );
+		setSyncMessage( `${ res.synced } view(s) synced from datadeck-json/.` );
 	};
 
 	return (
@@ -128,14 +128,14 @@ export default function ColumnsViewsModal( {
 				<div className="rc-modal-header">
 					<div className="rc-segmented">
 						<button type="button" className={ tab === 'columns' ? 'is-active' : '' } onClick={ () => setTab( 'columns' ) }>
-							{ `${ __( 'Columns', 'rowcraft' ) } (${ visibleColumns.length })` }
+							{ `${ __( 'Columns', 'datadeck' ) } (${ visibleColumns.length })` }
 						</button>
 						<button type="button" className={ tab === 'views' ? 'is-active' : '' } onClick={ () => setTab( 'views' ) }>
-							{ `${ __( 'Saved Views & JSON', 'rowcraft' ) } (${ views.length })` }
+							{ `${ __( 'Saved Views & JSON', 'datadeck' ) } (${ views.length })` }
 						</button>
 					</div>
 					<button type="button" className="rc-btn rc-btn--ghost" onClick={ onClose }>
-						{ __( 'Done', 'rowcraft' ) }
+						{ __( 'Done', 'datadeck' ) }
 					</button>
 				</div>
 
@@ -146,14 +146,14 @@ export default function ColumnsViewsModal( {
 								type="text"
 								className="rc-search-input"
 								style={ { paddingLeft: '10px' } }
-								placeholder={ __( 'Filter fields (ACF, WooCommerce, SEO, Meta)…', 'rowcraft' ) }
+								placeholder={ __( 'Filter fields (ACF, WooCommerce, SEO, Meta)…', 'datadeck' ) }
 								value={ search }
 								onChange={ ( e ) => setSearch( e.target.value ) }
 							/>
 
 							<div>
 								<div style={ { fontSize: '11.5px', fontWeight: 600, color: 'var(--rc-ink-secondary)', marginBottom: '6px', textTransform: 'uppercase' } }>
-									{ __( 'Active Order', 'rowcraft' ) }
+									{ __( 'Active Order', 'datadeck' ) }
 								</div>
 								<div style={ { display: 'flex', flexDirection: 'column', gap: '4px' } }>
 									{ visibleColumns.map( ( cid, idx ) => {
@@ -211,16 +211,16 @@ export default function ColumnsViewsModal( {
 					) : (
 						<>
 							<div className="rc-field-row">
-								<label>{ __( 'Save Current Columns, Widths & Filters as View', 'rowcraft' ) }</label>
+								<label>{ __( 'Save Current Columns, Widths & Filters as View', 'datadeck' ) }</label>
 								<div style={ { display: 'flex', gap: '6px' } }>
 									<input
 										type="text"
-										placeholder={ __( 'e.g. Store Manager Inventory', 'rowcraft' ) }
+										placeholder={ __( 'e.g. Store Manager Inventory', 'datadeck' ) }
 										value={ viewName }
 										onChange={ ( e ) => setViewName( e.target.value ) }
 									/>
 									<button type="button" className="rc-btn rc-btn--primary" disabled={ saving || ! viewName.trim() } onClick={ handleSaveView }>
-										{ __( 'Save', 'rowcraft' ) }
+										{ __( 'Save', 'datadeck' ) }
 									</button>
 								</div>
 							</div>
@@ -246,7 +246,7 @@ export default function ColumnsViewsModal( {
 												</div>
 											</div>
 											<button type="button" className="rc-btn rc-btn--danger" onClick={ () => handleDeleteView( v.id ) }>
-												{ __( 'Delete', 'rowcraft' ) }
+												{ __( 'Delete', 'datadeck' ) }
 											</button>
 										</div>
 									) ) }
@@ -255,16 +255,16 @@ export default function ColumnsViewsModal( {
 
 							<div style={ { padding: '10px 12px', background: 'var(--rc-bg-canvas)', border: '1px solid var(--rc-border)', borderRadius: '4px', fontSize: '12px' } }>
 								<div style={ { fontWeight: 600, marginBottom: '4px' } }>
-									{ __( 'Git-Syncable Local JSON (rowcraft-json/)', 'rowcraft' ) }
+									{ __( 'Git-Syncable Local JSON (datadeck-json/)', 'datadeck' ) }
 								</div>
 								<div style={ { color: 'var(--rc-ink-secondary)', marginBottom: '8px' } }>
 									{ jsonSync?.enabled
-										? `${ __( 'Active sync directory:', 'rowcraft' ) } ${ jsonSync.savePath }`
-										: __( 'Create a rowcraft-json/ folder inside your active theme to automatically version-control saved views in Git.', 'rowcraft' ) }
+										? `${ __( 'Active sync directory:', 'datadeck' ) } ${ jsonSync.savePath }`
+										: __( 'Create a datadeck-json/ folder inside your active theme to automatically version-control saved views in Git.', 'datadeck' ) }
 								</div>
 								{ jsonSync && jsonSync.syncAvailable.length > 0 && (
 									<button type="button" className="rc-btn rc-btn--primary" onClick={ handleSyncJson }>
-										{ `${ __( 'Sync', 'rowcraft' ) } ${ jsonSync.syncAvailable.length } ${ __( 'view(s) from JSON', 'rowcraft' ) }` }
+										{ `${ __( 'Sync', 'datadeck' ) } ${ jsonSync.syncAvailable.length } ${ __( 'view(s) from JSON', 'datadeck' ) }` }
 									</button>
 								) }
 								{ syncMessage && (

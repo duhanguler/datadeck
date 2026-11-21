@@ -227,7 +227,7 @@ export interface BulkChunkResponse {
 	nextChunkSize: number;
 }
 
-export interface RowCraftBootstrap {
+export interface DataDeckBootstrap {
 	version: string;
 	restRoot: string;
 	nonce: string;
@@ -246,8 +246,8 @@ export interface RowCraftBootstrap {
 
 declare global {
 	interface Window {
-		rowcraftBootstrap?: RowCraftBootstrap;
-		rowcraftToggle?: {
+		datadeckBootstrap?: DataDeckBootstrap;
+		datadeckToggle?: {
 			entity: string;
 			workspaceUrl: string;
 			classicLabel: string;

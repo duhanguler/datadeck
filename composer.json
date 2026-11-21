@@ -1,5 +1,5 @@
 {
-  "name": "rowcraft/rowcraft",
+  "name": "datadeck/datadeck",
   "description": "High-performance admin columns, zero-shift inline editor, AST bulk formula engine, and one-click rollback for WordPress & WooCommerce.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
@@ -26,12 +26,12 @@
   },
   "autoload": {
     "psr-4": {
-      "RowCraft\\": "src/"
+      "DataDeck\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "RowCraft\\Tests\\": "tests/phpunit/"
+      "DataDeck\\Tests\\": "tests/phpunit/"
     }
   },
   "config": {

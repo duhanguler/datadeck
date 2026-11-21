@@ -2,15 +2,15 @@
 /**
  * SEO Field Provider — Auto-detects Yoast SEO, Rank Math, or exposes clean fallback SEO metadata.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -53,7 +53,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 		return [
 			new FieldDefinition(
 				id: 'seo_title',
-				label: __( 'SEO Title', 'rowcraft' ),
+				label: __( 'SEO Title', 'datadeck' ),
 				type: 'text',
 				group: 'seo',
 				provider: $this->get_id(),
@@ -68,7 +68,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'seo_description',
-				label: __( 'Meta Description', 'rowcraft' ),
+				label: __( 'Meta Description', 'datadeck' ),
 				type: 'textarea',
 				group: 'seo',
 				provider: $this->get_id(),
@@ -83,7 +83,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'seo_focus_kw',
-				label: __( 'Focus Keyword', 'rowcraft' ),
+				label: __( 'Focus Keyword', 'datadeck' ),
 				type: 'text',
 				group: 'seo',
 				provider: $this->get_id(),
@@ -97,7 +97,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'seo_canonical',
-				label: __( 'Canonical URL', 'rowcraft' ),
+				label: __( 'Canonical URL', 'datadeck' ),
 				type: 'url',
 				group: 'seo',
 				provider: $this->get_id(),
@@ -112,7 +112,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'seo_noindex',
-				label: __( 'Noindex', 'rowcraft' ),
+				label: __( 'Noindex', 'datadeck' ),
 				type: 'boolean',
 				group: 'seo',
 				provider: $this->get_id(),

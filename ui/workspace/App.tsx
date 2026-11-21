@@ -203,13 +203,13 @@ export function App() {
 				dispatch.applyCommittedEdits( editsToCommit, errorMap );
 				if ( res.updated > 0 ) {
 					showToast(
-						`${ res.updated } ${ __( 'change(s) saved', 'rowcraft' ) }`,
+						`${ res.updated } ${ __( 'change(s) saved', 'datadeck' ) }`,
 						res.batchUuid || undefined
 					);
 				}
 			} catch ( err ) {
 				dispatch.setCommitting( false );
-				showToast( err instanceof Error ? err.message : __( 'Save failed', 'rowcraft' ) );
+				showToast( err instanceof Error ? err.message : __( 'Save failed', 'datadeck' ) );
 			}
 		},
 		[ state.entity, dispatch, showToast ]
@@ -300,26 +300,26 @@ export function App() {
 		setQuickTitle( '' );
 		setQuickPrice( '' );
 		setQuickSku( '' );
-		showToast( `${ __( 'Created', 'rowcraft' ) } #${ res.id }` );
+		showToast( `${ __( 'Created', 'datadeck' ) } #${ res.id }` );
 	};
 
 	const handleDuplicate = async ( id: number ) => {
 		const res = await duplicateRecord( state.entity, id );
 		dispatch.prependRecord( res.record );
-		showToast( `${ __( 'Duplicated as', 'rowcraft' ) } #${ res.id }` );
+		showToast( `${ __( 'Duplicated as', 'datadeck' ) } #${ res.id }` );
 	};
 
 	const handleDeleteSelected = async () => {
 		if ( selectedIdList.length === 0 ) {
 			return;
 		}
-		if ( ! window.confirm( `${ __( 'Move', 'rowcraft' ) } ${ selectedIdList.length } ${ __( 'item(s) to trash?', 'rowcraft' ) }` ) ) {
+		if ( ! window.confirm( `${ __( 'Move', 'datadeck' ) } ${ selectedIdList.length } ${ __( 'item(s) to trash?', 'datadeck' ) }` ) ) {
 			return;
 		}
 		const res = await deleteRecords( state.entity, selectedIdList );
 		dispatch.clearSelection();
 		reloadRecords();
-		showToast( `${ res.deleted.length } ${ __( 'item(s) moved to trash', 'rowcraft' ) }` );
+		showToast( `${ res.deleted.length } ${ __( 'item(s) moved to trash', 'datadeck' ) }` );
 	};
 
 	const handleDensityChange = ( d: DensityMode ) => {
@@ -334,19 +334,19 @@ export function App() {
 
 	const paletteCommands: PaletteCommand[] = useMemo( () => {
 		const cmds: PaletteCommand[] = [
-			{ id: 'bulk', label: __( 'Open Bulk Edit & AST Formula Engine', 'rowcraft' ), hint: 'Bulk', run: () => setShowBulkModal( true ) },
-			{ id: 'history', label: __( 'Open Change History & Rollback Drawer', 'rowcraft' ), hint: 'Audit', run: () => setShowHistory( true ) },
-			{ id: 'cols', label: __( 'Manage Columns & Saved Views', 'rowcraft' ), hint: 'Views', run: () => setShowColumns( true ) },
-			{ id: 'export-csv', label: __( 'Export Filtered Records as CSV (Streaming)', 'rowcraft' ), hint: 'CSV', run: () => window.open( buildExportUrl( state.entity, queryParams, 'csv' ), '_blank' ) },
-			{ id: 'export-json', label: __( 'Export Filtered Records as JSON', 'rowcraft' ), hint: 'JSON', run: () => window.open( buildExportUrl( state.entity, queryParams, 'json' ), '_blank' ) },
-			{ id: 'dens-compact', label: __( 'Density: Compact (30px spreadsheet)', 'rowcraft' ), run: () => handleDensityChange( 'compact' ) },
-			{ id: 'dens-default', label: __( 'Density: Default (36px)', 'rowcraft' ), run: () => handleDensityChange( 'default' ) },
-			{ id: 'dens-comf', label: __( 'Density: Comfortable (48px)', 'rowcraft' ) , run: () => handleDensityChange( 'comfortable' ) },
+			{ id: 'bulk', label: __( 'Open Bulk Edit & AST Formula Engine', 'datadeck' ), hint: 'Bulk', run: () => setShowBulkModal( true ) },
+			{ id: 'history', label: __( 'Open Change History & Rollback Drawer', 'datadeck' ), hint: 'Audit', run: () => setShowHistory( true ) },
+			{ id: 'cols', label: __( 'Manage Columns & Saved Views', 'datadeck' ), hint: 'Views', run: () => setShowColumns( true ) },
+			{ id: 'export-csv', label: __( 'Export Filtered Records as CSV (Streaming)', 'datadeck' ), hint: 'CSV', run: () => window.open( buildExportUrl( state.entity, queryParams, 'csv' ), '_blank' ) },
+			{ id: 'export-json', label: __( 'Export Filtered Records as JSON', 'datadeck' ), hint: 'JSON', run: () => window.open( buildExportUrl( state.entity, queryParams, 'json' ), '_blank' ) },
+			{ id: 'dens-compact', label: __( 'Density: Compact (30px spreadsheet)', 'datadeck' ), run: () => handleDensityChange( 'compact' ) },
+			{ id: 'dens-default', label: __( 'Density: Default (36px)', 'datadeck' ), run: () => handleDensityChange( 'default' ) },
+			{ id: 'dens-comf', label: __( 'Density: Comfortable (48px)', 'datadeck' ) , run: () => handleDensityChange( 'comfortable' ) },
 		];
 		for ( const ent of state.entities ) {
 			cmds.push( {
 				id: `ent-${ ent.slug }`,
-				label: `${ __( 'Switch to', 'rowcraft' ) } ${ ent.pluralLabel }`,
+				label: `${ __( 'Switch to', 'datadeck' ) } ${ ent.pluralLabel }`,
 				hint: ent.group,
 				run: () => {
 					setSearchInput( '' );
@@ -357,7 +357,7 @@ export function App() {
 		for ( const lens of state.lenses ) {
 			cmds.push( {
 				id: `lens-${ lens.id }`,
-				label: `${ __( 'Audit Lens:', 'rowcraft' ) } ${ lens.label }`,
+				label: `${ __( 'Audit Lens:', 'datadeck' ) } ${ lens.label }`,
 				hint: 'Lens',
 				run: () => dispatch.setQueryParam( { activeLens: lens.id, page: 1 } ),
 			} );
@@ -366,7 +366,7 @@ export function App() {
 	}, [ state.entities, state.lenses, state.entity, queryParams ] );
 
 	return (
-		<div className="rowcraft-root" data-density={ state.density }>
+		<div className="datadeck-root" data-density={ state.density }>
 			{/* 44px Unified Command Bar */}
 			<header className="rc-topbar">
 				<div className="rc-topbar-left">
@@ -377,13 +377,13 @@ export function App() {
 							<line x1="2.5" y1="12" x2="17.5" y2="12" />
 							<line x1="8" y1="7.5" x2="8" y2="17" />
 						</svg>
-						RowCraft
+						DataDeck
 					</span>
 
 					<select
 						className="rc-entity-select"
 						value={ state.entity }
-						aria-label={ __( 'Select entity', 'rowcraft' ) }
+						aria-label={ __( 'Select entity', 'datadeck' ) }
 						onChange={ ( e ) => {
 							setSearchInput( '' );
 							dispatch.setEntity( e.target.value );
@@ -401,7 +401,7 @@ export function App() {
 						<input
 							type="text"
 							className="rc-search-input"
-							placeholder={ __( 'Search title, ID, SKU…', 'rowcraft' ) }
+							placeholder={ __( 'Search title, ID, SKU…', 'datadeck' ) }
 							value={ searchInput }
 							onChange={ ( e ) => setSearchInput( e.target.value ) }
 						/>
@@ -418,7 +418,7 @@ export function App() {
 						onClick={ () => setShowFilters( ( v ) => ! v ) }
 					>
 						<Icon icon={ funnel } size={ 15 } />
-						{ __( 'Filter', 'rowcraft' ) }
+						{ __( 'Filter', 'datadeck' ) }
 						{ state.filters.length > 0 && ` (${ state.filters.length })` }
 					</button>
 				</div>
@@ -431,22 +431,22 @@ export function App() {
 							onClick={ () => setShowQuickAdd( ( v ) => ! v ) }
 						>
 							<Icon icon={ plus } size={ 15 } />
-							{ __( 'New Row', 'rowcraft' ) }
+							{ __( 'New Row', 'datadeck' ) }
 						</button>
 					) }
 
 					<button type="button" className="rc-btn" onClick={ () => setShowBulkModal( true ) }>
-						{ __( 'Bulk Edit', 'rowcraft' ) }
+						{ __( 'Bulk Edit', 'datadeck' ) }
 					</button>
 
 					<button type="button" className="rc-btn" onClick={ () => setShowColumns( true ) }>
 						<Icon icon={ columnsIcon } size={ 15 } />
-						{ __( 'Columns', 'rowcraft' ) }
+						{ __( 'Columns', 'datadeck' ) }
 					</button>
 
 					<button type="button" className="rc-btn" onClick={ () => setShowHistory( true ) }>
 						<Icon icon={ backup } size={ 15 } />
-						{ __( 'History', 'rowcraft' ) }
+						{ __( 'History', 'datadeck' ) }
 					</button>
 
 					<a
@@ -460,7 +460,7 @@ export function App() {
 
 					<span className="rc-divider-v" />
 
-					<div className="rc-segmented" role="group" aria-label={ __( 'Row density', 'rowcraft' ) }>
+					<div className="rc-segmented" role="group" aria-label={ __( 'Row density', 'datadeck' ) }>
 						{ ( [ 'compact', 'default', 'comfortable' ] as DensityMode[] ).map( ( d ) => (
 							<button
 								key={ d }
@@ -524,23 +524,23 @@ export function App() {
 									dispatch.setQueryParam( { flattenVariations: e.target.checked, page: 1 } )
 								}
 							/>
-							{ __( 'Flatten variations', 'rowcraft' ) }
+							{ __( 'Flatten variations', 'datadeck' ) }
 						</label>
 					) }
-					<div className="rc-segmented" title={ __( 'Cell save strategy', 'rowcraft' ) }>
+					<div className="rc-segmented" title={ __( 'Cell save strategy', 'datadeck' ) }>
 						<button
 							type="button"
 							className={ state.saveMode === 'staged' ? 'is-active' : '' }
 							onClick={ () => handleSaveModeChange( 'staged' ) }
 						>
-							{ __( 'Staged Save', 'rowcraft' ) }
+							{ __( 'Staged Save', 'datadeck' ) }
 						</button>
 						<button
 							type="button"
 							className={ state.saveMode === 'instant' ? 'is-active' : '' }
 							onClick={ () => handleSaveModeChange( 'instant' ) }
 						>
-							{ __( 'Instant Save', 'rowcraft' ) }
+							{ __( 'Instant Save', 'datadeck' ) }
 						</button>
 					</div>
 				</div>
@@ -564,7 +564,7 @@ export function App() {
 					<input
 						type="text"
 						style={ { width: '260px' } }
-						placeholder={ `${ __( 'New', 'rowcraft' ) } ${ state.entityMeta?.label || 'item' } ${ __( 'title…', 'rowcraft' ) }` }
+						placeholder={ `${ __( 'New', 'datadeck' ) } ${ state.entityMeta?.label || 'item' } ${ __( 'title…', 'datadeck' ) }` }
 						value={ quickTitle }
 						onChange={ ( e ) => setQuickTitle( e.target.value ) }
 						autoFocus
@@ -582,17 +582,17 @@ export function App() {
 								type="number"
 								step="0.01"
 								style={ { width: '110px' } }
-								placeholder={ __( 'Price', 'rowcraft' ) }
+								placeholder={ __( 'Price', 'datadeck' ) }
 								value={ quickPrice }
 								onChange={ ( e ) => setQuickPrice( e.target.value ) }
 							/>
 						</>
 					) }
 					<button type="submit" className="rc-btn rc-btn--primary">
-						{ __( 'Create Draft', 'rowcraft' ) }
+						{ __( 'Create Draft', 'datadeck' ) }
 					</button>
 					<button type="button" className="rc-btn rc-btn--ghost" onClick={ () => setShowQuickAdd( false ) }>
-						{ __( 'Cancel', 'rowcraft' ) }
+						{ __( 'Cancel', 'datadeck' ) }
 					</button>
 				</form>
 			) }
@@ -603,24 +603,24 @@ export function App() {
 					<div className="rc-action-ribbon-left">
 						<span className="rc-ribbon-dot" />
 						{ stagedCount > 0 && (
-							<strong>{ `${ stagedCount } ${ __( 'unsaved cell edit(s)', 'rowcraft' ) }` }</strong>
+							<strong>{ `${ stagedCount } ${ __( 'unsaved cell edit(s)', 'datadeck' ) }` }</strong>
 						) }
 						{ selectedIdList.length > 0 && (
-							<span>{ `${ selectedIdList.length } ${ __( 'row(s) selected', 'rowcraft' ) }` }</span>
+							<span>{ `${ selectedIdList.length } ${ __( 'row(s) selected', 'datadeck' ) }` }</span>
 						) }
 					</div>
 					<div className="rc-action-ribbon-right">
 						{ selectedIdList.length > 0 && (
 							<>
 								<button type="button" className="rc-btn" onClick={ () => setShowBulkModal( true ) }>
-									{ `${ __( 'Bulk Edit', 'rowcraft' ) } (${ selectedIdList.length })` }
+									{ `${ __( 'Bulk Edit', 'datadeck' ) } (${ selectedIdList.length })` }
 								</button>
 								<button type="button" className="rc-btn rc-btn--danger" onClick={ handleDeleteSelected }>
 									<Icon icon={ trash } size={ 14 } />
-									{ __( 'Trash', 'rowcraft' ) }
+									{ __( 'Trash', 'datadeck' ) }
 								</button>
 								<button type="button" className="rc-btn rc-btn--ghost" onClick={ () => dispatch.clearSelection() }>
-									{ __( 'Clear selection', 'rowcraft' ) }
+									{ __( 'Clear selection', 'datadeck' ) }
 								</button>
 							</>
 						) }
@@ -645,7 +645,7 @@ export function App() {
 									<Icon icon={ redo } size={ 14 } />
 								</button>
 								<button type="button" className="rc-btn" onClick={ () => dispatch.discardStaged() }>
-									{ __( 'Discard', 'rowcraft' ) }
+									{ __( 'Discard', 'datadeck' ) }
 								</button>
 								<button
 									type="button"
@@ -653,7 +653,7 @@ export function App() {
 									disabled={ state.committing }
 									onClick={ () => executeCommit( Object.values( state.stagedEdits ), 'inline' ) }
 								>
-									{ state.committing ? __( 'Saving…', 'rowcraft' ) : `${ __( 'Save Changes', 'rowcraft' ) } (${ stagedCount })` }
+									{ state.committing ? __( 'Saving…', 'datadeck' ) : `${ __( 'Save Changes', 'datadeck' ) } (${ stagedCount })` }
 								</button>
 							</>
 						) }
@@ -695,7 +695,7 @@ export function App() {
 			{/* 36px Footer with Pagination & Live SQL Query Budget Telemetry */}
 			<footer className="rc-footer">
 				<div className="rc-footer-left">
-					<span>{ `${ state.total.toLocaleString() } ${ __( 'records', 'rowcraft' ) }` }</span>
+					<span>{ `${ state.total.toLocaleString() } ${ __( 'records', 'datadeck' ) }` }</span>
 					<select
 						className="rc-entity-select"
 						style={ { height: '24px', fontSize: '11.5px', paddingRight: '22px' } }
@@ -724,7 +724,7 @@ export function App() {
 						disabled={ state.page <= 1 }
 						onClick={ () => dispatch.setQueryParam( { page: state.page - 1 } ) }
 					>
-						{ __( 'Prev', 'rowcraft' ) }
+						{ __( 'Prev', 'datadeck' ) }
 					</button>
 					<button
 						type="button"
@@ -733,7 +733,7 @@ export function App() {
 						disabled={ state.page >= state.totalPages }
 						onClick={ () => dispatch.setQueryParam( { page: state.page + 1 } ) }
 					>
-						{ __( 'Next', 'rowcraft' ) }
+						{ __( 'Next', 'datadeck' ) }
 					</button>
 				</div>
 			</footer>
@@ -816,10 +816,10 @@ export function App() {
 								dispatch.setToast( null );
 								const res = await rollbackBatch( uuid );
 								reloadRecords();
-								showToast( `${ res.restored } ${ __( 'record(s) restored', 'rowcraft' ) }` );
+								showToast( `${ res.restored } ${ __( 'record(s) restored', 'datadeck' ) }` );
 							} }
 						>
-							{ __( 'Rollback', 'rowcraft' ) }
+							{ __( 'Rollback', 'datadeck' ) }
 						</button>
 					) }
 				</div>

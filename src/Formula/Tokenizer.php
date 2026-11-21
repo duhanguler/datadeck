@@ -1,13 +1,13 @@
 <?php
 /**
- * Tokenizer for the RowCraft safe AST formula engine (zero eval).
+ * Tokenizer for the DataDeck safe AST formula engine (zero eval).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Formula;
+namespace DataDeck\Formula;
 
 use InvalidArgumentException;
 

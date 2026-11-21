@@ -2,16 +2,16 @@
 /**
  * Unit tests for the safe recursive-descent AST ExpressionEngine (zero eval).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Tests\Unit;
+namespace DataDeck\Tests\Unit;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use RowCraft\Formula\ExpressionEngine;
+use DataDeck\Formula\ExpressionEngine;
 
 final class ExpressionEngineTest extends TestCase {
 

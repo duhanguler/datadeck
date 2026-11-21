@@ -108,7 +108,7 @@ export default function BulkFormulaModal( {
 			const res = await dryRunBulk( entity, buildRule(), activeIds, queryParams );
 			setPreview( res );
 		} catch ( err ) {
-			setErrorMsg( err instanceof Error ? err.message : __( 'Dry-run failed.', 'rowcraft' ) );
+			setErrorMsg( err instanceof Error ? err.message : __( 'Dry-run failed.', 'datadeck' ) );
 		} finally {
 			setPreviewLoading( false );
 		}
@@ -154,18 +154,18 @@ export default function BulkFormulaModal( {
 			}
 
 			onCompleted(
-				`${ updatedTotal } ${ __( 'records updated', 'rowcraft' ) }`,
+				`${ updatedTotal } ${ __( 'records updated', 'datadeck' ) }`,
 				batchUuid
 			);
 		} catch ( err ) {
-			setErrorMsg( err instanceof Error ? err.message : __( 'Bulk execution failed.', 'rowcraft' ) );
+			setErrorMsg( err instanceof Error ? err.message : __( 'Bulk execution failed.', 'datadeck' ) );
 			setRunning( false );
 		}
 	};
 
 	const submitSchedule = async () => {
 		if ( ! scheduledAt ) {
-			setErrorMsg( __( 'Please pick a start date and time.', 'rowcraft' ) );
+			setErrorMsg( __( 'Please pick a start date and time.', 'datadeck' ) );
 			return;
 		}
 		setRunning( true );
@@ -179,9 +179,9 @@ export default function BulkFormulaModal( {
 				scheduledAt,
 				revertAt: revertAt || undefined,
 			} );
-			onCompleted( __( 'Campaign scheduled with automatic rollback snapshot.', 'rowcraft' ) );
+			onCompleted( __( 'Campaign scheduled with automatic rollback snapshot.', 'datadeck' ) );
 		} catch ( err ) {
-			setErrorMsg( err instanceof Error ? err.message : __( 'Failed to schedule campaign.', 'rowcraft' ) );
+			setErrorMsg( err instanceof Error ? err.message : __( 'Failed to schedule campaign.', 'datadeck' ) );
 			setRunning( false );
 		}
 	};
@@ -190,21 +190,21 @@ export default function BulkFormulaModal( {
 		<div className="rc-backdrop" onClick={ () => ! running && onClose() }>
 			<div className="rc-modal" onClick={ ( e ) => e.stopPropagation() } role="dialog" aria-modal="true">
 				<div className="rc-modal-header">
-					<h2>{ __( 'Bulk Edit & Formula Engine', 'rowcraft' ) }</h2>
+					<h2>{ __( 'Bulk Edit & Formula Engine', 'datadeck' ) }</h2>
 					<div className="rc-segmented">
 						<button
 							type="button"
 							className={ modeTab === 'now' ? 'is-active' : '' }
 							onClick={ () => setModeTab( 'now' ) }
 						>
-							{ __( 'Run Now', 'rowcraft' ) }
+							{ __( 'Run Now', 'datadeck' ) }
 						</button>
 						<button
 							type="button"
 							className={ modeTab === 'schedule' ? 'is-active' : '' }
 							onClick={ () => setModeTab( 'schedule' ) }
 						>
-							{ __( 'Schedule & Auto-Revert', 'rowcraft' ) }
+							{ __( 'Schedule & Auto-Revert', 'datadeck' ) }
 						</button>
 					</div>
 				</div>
@@ -212,24 +212,24 @@ export default function BulkFormulaModal( {
 				<div className="rc-modal-body">
 					<div style={ { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } }>
 						<div className="rc-field-row">
-							<label>{ __( 'Target Scope', 'rowcraft' ) }</label>
+							<label>{ __( 'Target Scope', 'datadeck' ) }</label>
 							<select
 								value={ scope }
 								onChange={ ( e ) => setScope( e.target.value as 'selected' | 'filtered' ) }
 							>
 								{ selectedIds.length > 0 && (
 									<option value="selected">
-										{ `${ selectedIds.length } ${ __( 'selected rows', 'rowcraft' ) }` }
+										{ `${ selectedIds.length } ${ __( 'selected rows', 'datadeck' ) }` }
 									</option>
 								) }
 								<option value="filtered">
-									{ `${ __( 'All matching current filters', 'rowcraft' ) } (${ totalMatching })` }
+									{ `${ __( 'All matching current filters', 'datadeck' ) } (${ totalMatching })` }
 								</option>
 							</select>
 						</div>
 
 						<div className="rc-field-row">
-							<label>{ __( 'Target Field', 'rowcraft' ) }</label>
+							<label>{ __( 'Target Field', 'datadeck' ) }</label>
 							<select value={ targetField } onChange={ ( e ) => setTargetField( e.target.value ) }>
 								{ editableFields.map( ( f ) => (
 									<option key={ f.id } value={ f.id }>
@@ -241,7 +241,7 @@ export default function BulkFormulaModal( {
 					</div>
 
 					<div className="rc-field-row">
-						<label>{ __( 'Operation', 'rowcraft' ) }</label>
+						<label>{ __( 'Operation', 'datadeck' ) }</label>
 						<select value={ action } onChange={ ( e ) => setAction( e.target.value ) }>
 							{ ACTIONS.map( ( a ) => (
 								<option key={ a.value } value={ a.value }>
@@ -253,7 +253,7 @@ export default function BulkFormulaModal( {
 
 					{ action === 'formula' && (
 						<div className="rc-field-row">
-							<label>{ __( 'Safe AST Formula (zero eval)', 'rowcraft' ) }</label>
+							<label>{ __( 'Safe AST Formula (zero eval)', 'datadeck' ) }</label>
 							<input
 								type="text"
 								className="rc-mono-input"
@@ -262,7 +262,7 @@ export default function BulkFormulaModal( {
 								placeholder="round(regular_price * 0.85, 0) - 0.01"
 							/>
 							<div style={ { fontSize: '11.5px', color: 'var(--rc-ink-secondary)' } }>
-								{ __( 'Functions: round, ceil, floor, min, max, if(cond, a, b), concat, upper, lower, replace, coalesce. Fields: regular_price, sale_price, stock_quantity, title, sku, etc.', 'rowcraft' ) }
+								{ __( 'Functions: round, ceil, floor, min, max, if(cond, a, b), concat, upper, lower, replace, coalesce. Fields: regular_price, sale_price, stock_quantity, title, sku, etc.', 'datadeck' ) }
 							</div>
 							{ formulaStatus && (
 								<div
@@ -271,7 +271,7 @@ export default function BulkFormulaModal( {
 										color: formulaStatus.valid ? 'var(--rc-success)' : 'var(--rc-danger)',
 									} }
 								>
-									{ formulaStatus.valid ? __( 'Valid AST expression', 'rowcraft' ) : formulaStatus.error }
+									{ formulaStatus.valid ? __( 'Valid AST expression', 'datadeck' ) : formulaStatus.error }
 								</div>
 							) }
 						</div>
@@ -280,11 +280,11 @@ export default function BulkFormulaModal( {
 					{ action === 'find_replace' && (
 						<div style={ { display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', alignItems: 'end' } }>
 							<div className="rc-field-row">
-								<label>{ __( 'Find', 'rowcraft' ) }</label>
+								<label>{ __( 'Find', 'datadeck' ) }</label>
 								<input type="text" className="rc-mono-input" value={ findText } onChange={ ( e ) => setFindText( e.target.value ) } />
 							</div>
 							<div className="rc-field-row">
-								<label>{ __( 'Replace with', 'rowcraft' ) }</label>
+								<label>{ __( 'Replace with', 'datadeck' ) }</label>
 								<input type="text" className="rc-mono-input" value={ replaceText } onChange={ ( e ) => setReplaceText( e.target.value ) } />
 							</div>
 							<label style={ { display: 'inline-flex', alignItems: 'center', gap: '6px', height: '32px', fontSize: '12.5px' } }>
@@ -297,7 +297,7 @@ export default function BulkFormulaModal( {
 					{ action !== 'formula' && action !== 'find_replace' && action !== 'clear' && (
 						<div style={ { display: 'grid', gridTemplateColumns: action === 'math_percent' || action === 'math_fixed' ? '1fr 180px' : '1fr', gap: '10px' } }>
 							<div className="rc-field-row">
-								<label>{ __( 'Value', 'rowcraft' ) }</label>
+								<label>{ __( 'Value', 'datadeck' ) }</label>
 								{ action === 'case_transform' ? (
 									<select value={ value } onChange={ ( e ) => setValue( e.target.value ) }>
 										<option value="title">Title Case</option>
@@ -306,7 +306,7 @@ export default function BulkFormulaModal( {
 									</select>
 								) : activeField?.type === 'select' && action === 'set' ? (
 									<select value={ value } onChange={ ( e ) => setValue( e.target.value ) }>
-										<option value="">{ __( 'Select…', 'rowcraft' ) }</option>
+										<option value="">{ __( 'Select…', 'datadeck' ) }</option>
 										{ activeField.options.map( ( o ) => (
 											<option key={ o.value } value={ o.value }>
 												{ o.label }
@@ -331,7 +331,7 @@ export default function BulkFormulaModal( {
 
 							{ ( action === 'math_percent' || action === 'math_fixed' ) && (
 								<div className="rc-field-row">
-									<label>{ __( 'Rounding', 'rowcraft' ) }</label>
+									<label>{ __( 'Rounding', 'datadeck' ) }</label>
 									<select value={ rounding } onChange={ ( e ) => setRounding( e.target.value ) }>
 										<option value="2dec">2 decimals</option>
 										<option value="int">Nearest integer</option>
@@ -346,20 +346,20 @@ export default function BulkFormulaModal( {
 					{ modeTab === 'schedule' && (
 						<div style={ { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '10px', background: 'var(--rc-bg-canvas)', border: '1px solid var(--rc-border)', borderRadius: '4px' } }>
 							<div className="rc-field-row" style={ { gridColumn: '1 / -1' } }>
-								<label>{ __( 'Campaign Label', 'rowcraft' ) }</label>
+								<label>{ __( 'Campaign Label', 'datadeck' ) }</label>
 								<input
 									type="text"
-									placeholder={ __( 'e.g. Weekend Flash Sale (-20%)', 'rowcraft' ) }
+									placeholder={ __( 'e.g. Weekend Flash Sale (-20%)', 'datadeck' ) }
 									value={ campaignName }
 									onChange={ ( e ) => setCampaignName( e.target.value ) }
 								/>
 							</div>
 							<div className="rc-field-row">
-								<label>{ __( 'Apply At (UTC)', 'rowcraft' ) }</label>
+								<label>{ __( 'Apply At (UTC)', 'datadeck' ) }</label>
 								<input type="datetime-local" value={ scheduledAt } onChange={ ( e ) => setScheduledAt( e.target.value ) } />
 							</div>
 							<div className="rc-field-row">
-								<label>{ __( 'Auto-Revert At (Optional UTC)', 'rowcraft' ) }</label>
+								<label>{ __( 'Auto-Revert At (Optional UTC)', 'datadeck' ) }</label>
 								<input type="datetime-local" value={ revertAt } onChange={ ( e ) => setRevertAt( e.target.value ) } />
 							</div>
 						</div>
@@ -374,15 +374,15 @@ export default function BulkFormulaModal( {
 					{ preview && (
 						<div>
 							<div style={ { fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--rc-ink-secondary)' } }>
-								{ `${ __( 'Dry-Run Diff Preview', 'rowcraft' ) } — ${ preview.previews.length } of ${ preview.totalMatching } matching records` }
+								{ `${ __( 'Dry-Run Diff Preview', 'datadeck' ) } — ${ preview.previews.length } of ${ preview.totalMatching } matching records` }
 							</div>
 							<table className="rc-diff-table">
 								<thead>
 									<tr>
 										<th>ID</th>
-										<th>{ __( 'Record', 'rowcraft' ) }</th>
-										<th>{ __( 'Before', 'rowcraft' ) }</th>
-										<th>{ __( 'After', 'rowcraft' ) }</th>
+										<th>{ __( 'Record', 'datadeck' ) }</th>
+										<th>{ __( 'Before', 'datadeck' ) }</th>
+										<th>{ __( 'After', 'datadeck' ) }</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -423,21 +423,21 @@ export default function BulkFormulaModal( {
 
 				<div className="rc-modal-footer">
 					<button type="button" className="rc-btn" disabled={ previewLoading || running } onClick={ runPreview }>
-						{ previewLoading ? __( 'Simulating…', 'rowcraft' ) : __( 'Dry-Run Preview', 'rowcraft' ) }
+						{ previewLoading ? __( 'Simulating…', 'datadeck' ) : __( 'Dry-Run Preview', 'datadeck' ) }
 					</button>
 					<div style={ { display: 'flex', gap: '8px' } }>
 						<button type="button" className="rc-btn rc-btn--ghost" disabled={ running } onClick={ onClose }>
-							{ __( 'Cancel', 'rowcraft' ) }
+							{ __( 'Cancel', 'datadeck' ) }
 						</button>
 						{ modeTab === 'now' ? (
 							<button type="button" className="rc-btn rc-btn--primary" disabled={ running || targetCount === 0 } onClick={ executeNow }>
 								{ running
-									? __( 'Applying chunks…', 'rowcraft' )
-									: `${ __( 'Apply to', 'rowcraft' ) } ${ targetCount } ${ __( 'records', 'rowcraft' ) }` }
+									? __( 'Applying chunks…', 'datadeck' )
+									: `${ __( 'Apply to', 'datadeck' ) } ${ targetCount } ${ __( 'records', 'datadeck' ) }` }
 							</button>
 						) : (
 							<button type="button" className="rc-btn rc-btn--primary" disabled={ running || targetCount === 0 } onClick={ submitSchedule }>
-								{ running ? __( 'Scheduling…', 'rowcraft' ) : __( 'Schedule Campaign', 'rowcraft' ) }
+								{ running ? __( 'Scheduling…', 'datadeck' ) : __( 'Schedule Campaign', 'datadeck' ) }
 							</button>
 						) }
 					</div>

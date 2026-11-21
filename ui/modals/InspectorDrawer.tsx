@@ -64,7 +64,7 @@ export default function InspectorDrawer( {
 				<div className="rc-modal-header">
 					<h2>{ `#${ record.id } — ${ String( record.title || record.display_name || record.customer_name || '' ) }` }</h2>
 					<button type="button" className="rc-btn rc-btn--ghost" onClick={ onClose }>
-						{ __( 'Close', 'rowcraft' ) }
+						{ __( 'Close', 'datadeck' ) }
 					</button>
 				</div>
 
@@ -186,15 +186,15 @@ export default function InspectorDrawer( {
 				<div className="rc-modal-footer">
 					{ record._editUrl ? (
 						<a href={ record._editUrl } target="_blank" rel="noreferrer" className="rc-btn rc-btn--ghost" style={ { textDecoration: 'none' } }>
-							{ __( 'Open Classic Editor', 'rowcraft' ) }
+							{ __( 'Open Classic Editor', 'datadeck' ) }
 						</a>
 					) : <span /> }
 					<div style={ { display: 'flex', gap: '8px' } }>
 						<button type="button" className="rc-btn rc-btn--ghost" onClick={ onClose }>
-							{ __( 'Cancel', 'rowcraft' ) }
+							{ __( 'Cancel', 'datadeck' ) }
 						</button>
 						<button type="button" className="rc-btn rc-btn--primary" onClick={ handleApply }>
-							{ __( 'Apply Changes', 'rowcraft' ) }
+							{ __( 'Apply Changes', 'datadeck' ) }
 						</button>
 					</div>
 				</div>

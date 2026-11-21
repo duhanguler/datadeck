@@ -2,12 +2,12 @@
 /**
  * Immutable lexer token for the safe AST Formula Engine.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Formula;
+namespace DataDeck\Formula;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

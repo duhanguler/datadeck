@@ -103,10 +103,10 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 					style={ { height: '26px', fontSize: '11.5px', paddingRight: '22px' } }
 					value={ relation }
 					onChange={ ( e ) => onChange( filters, e.target.value as 'AND' | 'OR' ) }
-					aria-label={ __( 'Filter logic', 'rowcraft' ) }
+					aria-label={ __( 'Filter logic', 'datadeck' ) }
 				>
-					<option value="AND">{ __( 'Match ALL (AND)', 'rowcraft' ) }</option>
-					<option value="OR">{ __( 'Match ANY (OR)', 'rowcraft' ) }</option>
+					<option value="AND">{ __( 'Match ALL (AND)', 'datadeck' ) }</option>
+					<option value="OR">{ __( 'Match ANY (OR)', 'datadeck' ) }</option>
 				</select>
 			) }
 
@@ -153,7 +153,7 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 								value={ clause.value }
 								onChange={ ( e ) => updateClause( clause.id, { value: e.target.value } ) }
 							>
-								<option value="">{ __( 'Select…', 'rowcraft' ) }</option>
+								<option value="">{ __( 'Select…', 'datadeck' ) }</option>
 								{ field.options.map( ( o ) => (
 									<option key={ o.value } value={ o.value }>
 										{ o.label }
@@ -165,7 +165,7 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 								<input
 									type="text"
 									style={ { width: clause.operator === 'between' ? '72px' : '120px' } }
-									placeholder={ clause.operator === 'inlastdays' ? '7' : __( 'Value…', 'rowcraft' ) }
+									placeholder={ clause.operator === 'inlastdays' ? '7' : __( 'Value…', 'datadeck' ) }
 									value={ clause.value }
 									onChange={ ( e ) => updateClause( clause.id, { value: e.target.value } ) }
 								/>
@@ -173,7 +173,7 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 									<input
 										type="text"
 										style={ { width: '72px' } }
-										placeholder={ __( 'Max…', 'rowcraft' ) }
+										placeholder={ __( 'Max…', 'datadeck' ) }
 										value={ clause.value2 || '' }
 										onChange={ ( e ) => updateClause( clause.id, { value2: e.target.value } ) }
 									/>
@@ -184,7 +184,7 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 						<button
 							type="button"
 							className="rc-icon-btn"
-							aria-label={ __( 'Remove filter', 'rowcraft' ) }
+							aria-label={ __( 'Remove filter', 'datadeck' ) }
 							onClick={ () => removeClause( clause.id ) }
 						>
 							×
@@ -194,7 +194,7 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 			} ) }
 
 			<button type="button" className="rc-btn rc-btn--ghost" onClick={ addFilter }>
-				+ { __( 'Add filter', 'rowcraft' ) }
+				+ { __( 'Add filter', 'datadeck' ) }
 			</button>
 
 			{ filters.length > 0 && (
@@ -203,7 +203,7 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 					className="rc-btn rc-btn--ghost"
 					onClick={ () => onChange( [], 'AND' ) }
 				>
-					{ __( 'Clear all', 'rowcraft' ) }
+					{ __( 'Clear all', 'datadeck' ) }
 				</button>
 			) }
 		</div>

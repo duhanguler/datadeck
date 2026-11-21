@@ -2,15 +2,15 @@
 /**
  * Scheduled & Auto-Reverting Bulk Campaign Engine (Action Scheduler + WP-Cron fallback).
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Bulk;
+namespace DataDeck\Bulk;
 
-use RowCraft\History\HistoryService;
-use RowCraft\History\Schema;
+use DataDeck\History\HistoryService;
+use DataDeck\History\Schema;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,8 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class CampaignScheduler {
 
-	public const HOOK_APPLY  = 'rowcraft_run_scheduled_campaign';
-	public const HOOK_REVERT = 'rowcraft_revert_scheduled_campaign';
+	public const HOOK_APPLY  = 'datadeck_run_scheduled_campaign';
+	public const HOOK_REVERT = 'datadeck_revert_scheduled_campaign';
 
 	public function __construct(
 		private readonly BulkOperationEngine $bulk,
@@ -33,7 +33,7 @@ final class CampaignScheduler {
 	public function register_hooks(): void {
 		add_action( self::HOOK_APPLY, [ $this, 'run_campaign' ], 10, 1 );
 		add_action( self::HOOK_REVERT, [ $this, 'revert_campaign' ], 10, 1 );
-		add_action( 'rowcraft_process_schedules', [ $this, 'poll_due_campaigns' ] );
+		add_action( 'datadeck_process_schedules', [ $this, 'poll_due_campaigns' ] );
 	}
 
 	/**
@@ -59,14 +59,14 @@ final class CampaignScheduler {
 	): array|WP_Error {
 		$start_ts = strtotime( $scheduled_at );
 		if ( false === $start_ts ) {
-			return new WP_Error( 'rowcraft_invalid_schedule', __( 'Invalid start date/time.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_invalid_schedule', __( 'Invalid start date/time.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$revert_ts = null;
 		if ( null !== $revert_at && '' !== $revert_at ) {
 			$parsed = strtotime( $revert_at );
 			if ( false === $parsed || $parsed <= $start_ts ) {
-				return new WP_Error( 'rowcraft_invalid_revert', __( 'Auto-revert time must be after start time.', 'rowcraft' ), [ 'status' => 400 ] );
+				return new WP_Error( 'datadeck_invalid_revert', __( 'Auto-revert time must be after start time.', 'datadeck' ), [ 'status' => 400 ] );
 			}
 			$revert_ts = $parsed;
 		}
@@ -121,7 +121,7 @@ final class CampaignScheduler {
 		);
 
 		if ( ! $updated ) {
-			return new WP_Error( 'rowcraft_cancel_failed', __( 'Scheduled campaign not found or already executed.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_cancel_failed', __( 'Scheduled campaign not found or already executed.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		wp_clear_scheduled_hook( self::HOOK_APPLY, [ $batch_uuid ] );
@@ -234,7 +234,7 @@ final class CampaignScheduler {
 	 */
 	private function enqueue_event( int $timestamp, string $hook, array $args ): void {
 		if ( function_exists( 'as_schedule_single_action' ) ) {
-			as_schedule_single_action( $timestamp, $hook, $args, 'rowcraft' );
+			as_schedule_single_action( $timestamp, $hook, $args, 'datadeck' );
 			return;
 		}
 		wp_schedule_single_event( $timestamp, $hook, $args );

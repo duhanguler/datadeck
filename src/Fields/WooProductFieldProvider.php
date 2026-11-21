@@ -5,15 +5,15 @@
  * Reads via SelectiveHydrator (zero N+1) and writes strictly through WC_Product CRUD
  * so lookup tables (wc_product_meta_lookup), transients, and HPOS hooks stay 100% consistent.
  *
- * @package RowCraft
+ * @package DataDeck
  */
 
 declare(strict_types=1);
 
-namespace RowCraft\Fields;
+namespace DataDeck\Fields;
 
-use RowCraft\Contracts\FieldProviderInterface;
-use RowCraft\Schema\FieldDefinition;
+use DataDeck\Contracts\FieldProviderInterface;
+use DataDeck\Schema\FieldDefinition;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,14 +39,14 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 		}
 
 		$currency     = function_exists( 'get_woocommerce_currency_symbol' ) ? html_entity_decode( get_woocommerce_currency_symbol() ) : '$';
-		$include_opts = \RowCraft\Plugin::instance()->fields()->should_include_options();
+		$include_opts = \DataDeck\Plugin::instance()->fields()->should_include_options();
 		$cats         = $include_opts ? $this->get_tax_options( 'product_cat' ) : [];
 		$tags         = $include_opts ? $this->get_tax_options( 'product_tag' ) : [];
 
 		return [
 			new FieldDefinition(
 				id: 'sku',
-				label: __( 'SKU', 'rowcraft' ),
+				label: __( 'SKU', 'datadeck' ),
 				type: 'text',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -60,7 +60,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'regular_price',
-				label: __( 'Regular Price', 'rowcraft' ),
+				label: __( 'Regular Price', 'datadeck' ),
 				type: 'currency',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -77,7 +77,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'sale_price',
-				label: __( 'Sale Price', 'rowcraft' ),
+				label: __( 'Sale Price', 'datadeck' ),
 				type: 'currency',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -94,7 +94,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'stock_status',
-				label: __( 'Stock Status', 'rowcraft' ),
+				label: __( 'Stock Status', 'datadeck' ),
 				type: 'select',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -107,21 +107,21 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 				options: [
 					[
 						'value' => 'instock',
-						'label' => __( 'In Stock', 'rowcraft' ),
+						'label' => __( 'In Stock', 'datadeck' ),
 					],
 					[
 						'value' => 'outofstock',
-						'label' => __( 'Out of Stock', 'rowcraft' ),
+						'label' => __( 'Out of Stock', 'datadeck' ),
 					],
 					[
 						'value' => 'onbackorder',
-						'label' => __( 'On Backorder', 'rowcraft' ),
+						'label' => __( 'On Backorder', 'datadeck' ),
 					],
 				],
 			),
 			new FieldDefinition(
 				id: 'stock_quantity',
-				label: __( 'Stock Qty', 'rowcraft' ),
+				label: __( 'Stock Qty', 'datadeck' ),
 				type: 'integer',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -136,7 +136,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'manage_stock',
-				label: __( 'Manage Stock', 'rowcraft' ),
+				label: __( 'Manage Stock', 'datadeck' ),
 				type: 'boolean',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -150,7 +150,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'product_cat',
-				label: __( 'Categories', 'rowcraft' ),
+				label: __( 'Categories', 'datadeck' ),
 				type: 'taxonomy',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -165,7 +165,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'product_tag',
-				label: __( 'Tags', 'rowcraft' ),
+				label: __( 'Tags', 'datadeck' ),
 				type: 'taxonomy',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -179,7 +179,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'weight',
-				label: __( 'Weight', 'rowcraft' ),
+				label: __( 'Weight', 'datadeck' ),
 				type: 'number',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -194,7 +194,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 			),
 			new FieldDefinition(
 				id: 'backorders',
-				label: __( 'Backorders', 'rowcraft' ),
+				label: __( 'Backorders', 'datadeck' ),
 				type: 'select',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -207,21 +207,21 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 				options: [
 					[
 						'value' => 'no',
-						'label' => __( 'Do not allow', 'rowcraft' ),
+						'label' => __( 'Do not allow', 'datadeck' ),
 					],
 					[
 						'value' => 'notify',
-						'label' => __( 'Allow, notify', 'rowcraft' ),
+						'label' => __( 'Allow, notify', 'datadeck' ),
 					],
 					[
 						'value' => 'yes',
-						'label' => __( 'Allow', 'rowcraft' ),
+						'label' => __( 'Allow', 'datadeck' ),
 					],
 				],
 			),
 			new FieldDefinition(
 				id: 'tax_status',
-				label: __( 'Tax Status', 'rowcraft' ),
+				label: __( 'Tax Status', 'datadeck' ),
 				type: 'select',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -234,21 +234,21 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 				options: [
 					[
 						'value' => 'taxable',
-						'label' => __( 'Taxable', 'rowcraft' ),
+						'label' => __( 'Taxable', 'datadeck' ),
 					],
 					[
 						'value' => 'shipping',
-						'label' => __( 'Shipping only', 'rowcraft' ),
+						'label' => __( 'Shipping only', 'datadeck' ),
 					],
 					[
 						'value' => 'none',
-						'label' => __( 'None', 'rowcraft' ),
+						'label' => __( 'None', 'datadeck' ),
 					],
 				],
 			),
 			new FieldDefinition(
 				id: 'total_sales',
-				label: __( 'Total Sales', 'rowcraft' ),
+				label: __( 'Total Sales', 'datadeck' ),
 				type: 'integer',
 				group: 'woocommerce',
 				provider: $this->get_id(),
@@ -349,12 +349,12 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 		}
 
 		if ( ! function_exists( 'wc_get_product' ) ) {
-			return new WP_Error( 'rowcraft_woo_inactive', __( 'WooCommerce is not active.', 'rowcraft' ), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_woo_inactive', __( 'WooCommerce is not active.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
 		$product = wc_get_product( $record_id );
 		if ( ! $product ) {
-			return new WP_Error( 'rowcraft_product_missing', __( 'Product not found.', 'rowcraft' ), [ 'status' => 404 ] );
+			return new WP_Error( 'datadeck_product_missing', __( 'Product not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
 		try {
@@ -374,7 +374,7 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 					$allowed = [ 'instock', 'outofstock', 'onbackorder' ];
 					$st      = sanitize_key( (string) $value );
 					if ( ! in_array( $st, $allowed, true ) ) {
-						return new WP_Error( 'rowcraft_invalid_stock_status', __( 'Invalid stock status.', 'rowcraft' ), [ 'status' => 400 ] );
+						return new WP_Error( 'datadeck_invalid_stock_status', __( 'Invalid stock status.', 'datadeck' ), [ 'status' => 400 ] );
 					}
 					$product->set_stock_status( $st );
 					break;
@@ -402,13 +402,13 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 					$product->set_tax_status( in_array( $value, [ 'taxable', 'shipping', 'none' ], true ) ? (string) $value : 'taxable' );
 					break;
 				default:
-					return new WP_Error( 'rowcraft_unsupported_woo_field', __( 'Unsupported WooCommerce field.', 'rowcraft' ), [ 'status' => 400 ] );
+					return new WP_Error( 'datadeck_unsupported_woo_field', __( 'Unsupported WooCommerce field.', 'datadeck' ), [ 'status' => 400 ] );
 			}
 
 			$product->save();
 			return true;
 		} catch ( \WC_Data_Exception $e ) {
-			return new WP_Error( 'rowcraft_wc_data_error', $e->getMessage(), [ 'status' => 400 ] );
+			return new WP_Error( 'datadeck_wc_data_error', $e->getMessage(), [ 'status' => 400 ] );
 		}
 	}
 
