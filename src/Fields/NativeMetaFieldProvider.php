@@ -180,17 +180,15 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 
 			$acf_names = $this->get_acf_field_names( $entity_slug );
 
-			if ( is_array( $keys ) ) {
-				foreach ( $keys as $key ) {
-					$key = (string) $key;
-					if ( isset( $discovered[ $key ] ) || isset( $acf_names[ $key ] ) ) {
-						continue;
-					}
-					if ( str_starts_with( $key, 'rank_math_' ) || str_starts_with( $key, 'yoast_' ) || str_starts_with( $key, 'datadeck_' ) ) {
-						continue;
-					}
-					$discovered[ $key ] = [ 'type' => 'text' ];
+			foreach ( $keys as $key ) {
+				$key = (string) $key;
+				if ( isset( $discovered[ $key ] ) || isset( $acf_names[ $key ] ) ) {
+					continue;
 				}
+				if ( str_starts_with( $key, 'rank_math_' ) || str_starts_with( $key, 'yoast_' ) || str_starts_with( $key, 'datadeck_' ) ) {
+					continue;
+				}
+				$discovered[ $key ] = [ 'type' => 'text' ];
 			}
 		}
 

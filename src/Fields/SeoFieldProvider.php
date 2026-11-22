@@ -31,7 +31,7 @@ final class SeoFieldProvider implements FieldProviderInterface {
 	}
 
 	/**
-	 * Detect active SEO suite ('yoast' | 'rankmath' | 'generic').
+	 * Detect active SEO suite ('yoast' | 'rankmath' | 'seopress' | 'aioseo' | 'generic').
 	 */
 	public function detect_engine(): string {
 		if ( defined( 'WPSEO_VERSION' ) ) {
@@ -39,6 +39,12 @@ final class SeoFieldProvider implements FieldProviderInterface {
 		}
 		if ( defined( 'RANK_MATH_VERSION' ) ) {
 			return 'rankmath';
+		}
+		if ( defined( 'SEOPRESS_VERSION' ) ) {
+			return 'seopress';
+		}
+		if ( defined( 'AIOSEO_VERSION' ) ) {
+			return 'aioseo';
 		}
 		return 'generic';
 	}
@@ -154,6 +160,8 @@ final class SeoFieldProvider implements FieldProviderInterface {
 				if ( 'seo_noindex' === $fid ) {
 					if ( 'rankmath' === $engine ) {
 						$rows[ $id ][ $fid ] = is_array( $raw ) && in_array( 'noindex', $raw, true );
+					} elseif ( 'seopress' === $engine ) {
+						$rows[ $id ][ $fid ] = 'yes' === (string) $raw || '1' === (string) $raw || true === $raw;
 					} else {
 						$rows[ $id ][ $fid ] = '1' === (string) $raw || true === $raw;
 					}
@@ -165,10 +173,14 @@ final class SeoFieldProvider implements FieldProviderInterface {
 	}
 
 	public function read_value( string $entity_slug, int $record_id, FieldDefinition $field ): mixed {
-		$raw = get_post_meta( $record_id, $field->meta_key, true );
+		$raw    = get_post_meta( $record_id, $field->meta_key, true );
+		$engine = $this->detect_engine();
 		if ( 'seo_noindex' === $field->id ) {
-			if ( 'rankmath' === $this->detect_engine() ) {
+			if ( 'rankmath' === $engine ) {
 				return is_array( $raw ) && in_array( 'noindex', $raw, true );
+			}
+			if ( 'seopress' === $engine ) {
+				return 'yes' === (string) $raw || '1' === (string) $raw;
 			}
 			return '1' === (string) $raw;
 		}
@@ -186,6 +198,12 @@ final class SeoFieldProvider implements FieldProviderInterface {
 				$arr     = array_values( array_diff( $arr, [ 'index', 'noindex' ] ) );
 				$arr[]   = $bool ? 'noindex' : 'index';
 				update_post_meta( $record_id, $field->meta_key, $arr );
+			} elseif ( 'seopress' === $engine ) {
+				if ( $bool ) {
+					update_post_meta( $record_id, $field->meta_key, 'yes' );
+				} else {
+					delete_post_meta( $record_id, $field->meta_key );
+				}
 			} elseif ( $bool ) {
 				update_post_meta( $record_id, $field->meta_key, '1' );
 			} else {
@@ -223,7 +241,27 @@ final class SeoFieldProvider implements FieldProviderInterface {
 			];
 		}
 
-		// Yoast SEO keys also act as clean standard fallback when neither Yoast nor Rank Math is active.
+		if ( 'seopress' === $engine ) {
+			return [
+				'title'       => '_seopress_titles_title',
+				'description' => '_seopress_titles_desc',
+				'focus_kw'    => '_seopress_analysis_target_kw',
+				'canonical'   => '_seopress_robots_canonical',
+				'noindex'     => '_seopress_robots_index',
+			];
+		}
+
+		if ( 'aioseo' === $engine ) {
+			return [
+				'title'       => '_aioseo_title',
+				'description' => '_aioseo_description',
+				'focus_kw'    => '_aioseo_keywords',
+				'canonical'   => '_aioseo_canonical_url',
+				'noindex'     => '_aioseo_noindex',
+			];
+		}
+
+		// Yoast SEO keys also act as clean standard fallback when no SEO suite is active.
 		return [
 			'title'       => '_yoast_wpseo_title',
 			'description' => '_yoast_wpseo_metadesc',

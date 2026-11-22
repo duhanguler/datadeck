@@ -17,12 +17,16 @@ interface InlineCellProps {
 	isFocused: boolean;
 	isEditing: boolean;
 	isInRange: boolean;
+	isFillTarget?: boolean;
 	initialChar?: string;
 	isExpandedParent?: boolean;
 	onFocus: ( shiftKey: boolean ) => void;
 	onStartEdit: () => void;
 	onCommitEdit: ( newValue: unknown, move?: 'next-col' | 'prev-col' | 'next-row' | 'prev-row' ) => void;
 	onCancelEdit: () => void;
+	onStartFillDrag?: () => void;
+	onFillDragEnter?: () => void;
+	onContextMenuCell?: ( e: React.MouseEvent, currentValue: unknown ) => void;
 	onToggleVariations?: ( parentId: number ) => void;
 	onInspectRow?: ( record: RecordRow ) => void;
 	onDuplicateRow?: ( id: number ) => void;
@@ -33,17 +37,20 @@ function statusDotClass( value: string ): string {
 		case 'publish':
 		case 'instock':
 		case 'completed':
+		case 'approve':
 			return 'rc-status-dot--ok';
 		case 'draft':
 		case 'pending':
 		case 'onbackorder':
 		case 'processing':
 		case 'on-hold':
+		case 'hold':
 			return 'rc-status-dot--warn';
 		case 'outofstock':
 		case 'failed':
 		case 'cancelled':
 		case 'trash':
+		case 'spam':
 			return 'rc-status-dot--danger';
 		case 'future':
 		case 'private':
@@ -53,7 +60,7 @@ function statusDotClass( value: string ): string {
 	}
 }
 
-function formatNumber( val: unknown, currency?: string ): string {
+function formatNumber( val: unknown, currency?: string, suffix?: string ): string {
 	if ( val === null || val === undefined || val === '' ) {
 		return '—';
 	}
@@ -63,6 +70,9 @@ function formatNumber( val: unknown, currency?: string ): string {
 	}
 	if ( currency ) {
 		return `${ currency }${ num.toFixed( 2 ) }`;
+	}
+	if ( suffix ) {
+		return `${ num }${ suffix }`;
 	}
 	return String( num );
 }
@@ -76,12 +86,16 @@ export const InlineCell = memo( function InlineCell( {
 	isFocused,
 	isEditing,
 	isInRange,
+	isFillTarget,
 	initialChar,
 	isExpandedParent,
 	onFocus,
 	onStartEdit,
 	onCommitEdit,
 	onCancelEdit,
+	onStartFillDrag,
+	onFillDragEnter,
+	onContextMenuCell,
 	onToggleVariations,
 	onInspectRow,
 	onDuplicateRow,
@@ -230,9 +244,11 @@ export const InlineCell = memo( function InlineCell( {
 		field.align === 'center' ? 'rc-td--center' : '',
 		field.monospace ? 'rc-td--mono' : '',
 		field.tabularNums ? 'rc-td--tabular' : '',
+		field.extra?.computed ? 'rc-td--computed' : '',
 		canEdit ? 'rc-td--editable' : '',
 		isFocused ? 'is-focused' : '',
 		isInRange ? 'is-in-range' : '',
+		isFillTarget ? 'is-fill-target' : '',
 		isDirty ? 'is-dirty' : '',
 		cellError ? 'is-error' : '',
 	]
@@ -240,6 +256,7 @@ export const InlineCell = memo( function InlineCell( {
 		.join( ' ' );
 
 	const currencySymbol = typeof field.extra?.currency === 'string' ? field.extra.currency : undefined;
+	const suffixSymbol = typeof field.extra?.suffix === 'string' ? field.extra.suffix : undefined;
 	const recommendedMax = field.validation?.recommendedMax;
 
 	// Pricing anomaly check: sale_price >= regular_price
@@ -315,7 +332,11 @@ export const InlineCell = memo( function InlineCell( {
 		}
 
 		if ( field.type === 'currency' || field.type === 'number' || field.type === 'integer' ) {
-			const formatted = formatNumber( rawValue, field.type === 'currency' ? currencySymbol : undefined );
+			const formatted = formatNumber(
+				rawValue,
+				field.type === 'currency' ? currencySymbol : undefined,
+				suffixSymbol
+			);
 			return (
 				<span
 					className={ `rc-cell-text ${ formatted === '—' ? 'rc-cell-muted' : '' }` }
@@ -502,6 +523,14 @@ export const InlineCell = memo( function InlineCell( {
 			role="gridcell"
 			title={ cellError || undefined }
 			onClick={ ( e ) => onFocus( e.shiftKey ) }
+			onMouseEnter={ () => onFillDragEnter?.() }
+			onContextMenu={ ( e ) => {
+				if ( onContextMenuCell ) {
+					e.preventDefault();
+					onFocus( false );
+					onContextMenuCell( e, rawValue );
+				}
+			} }
 			onDoubleClick={ () => {
 				if ( canEdit ) {
 					onStartEdit();
@@ -510,6 +539,17 @@ export const InlineCell = memo( function InlineCell( {
 		>
 			{ renderDisplay() }
 			{ renderEditor() }
+			{ isFocused && ! isEditing && canEdit && onStartFillDrag && ! [ 'media', 'taxonomy' ].includes( field.type ) && (
+				<span
+					className="rc-fill-handle"
+					title={ __( 'Drag down to fill series', 'datadeck' ) }
+					onMouseDown={ ( e ) => {
+						e.preventDefault();
+						e.stopPropagation();
+						onStartFillDrag();
+					} }
+				/>
+			) }
 		</div>
 	);
 } );

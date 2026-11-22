@@ -12,6 +12,7 @@ namespace DataDeck\Cli;
 use DataDeck\Bulk\BulkOperationEngine;
 use DataDeck\Entities\EntityRegistry;
 use DataDeck\History\HistoryService;
+use DataDeck\Import\CsvImportEngine;
 use DataDeck\Query\QueryRequest;
 use DataDeck\Sync\ViewSyncService;
 use WP_CLI;
@@ -27,6 +28,7 @@ final class DataDeckCommand {
 		private readonly BulkOperationEngine $bulk,
 		private readonly HistoryService $history,
 		private readonly ViewSyncService $views,
+		private readonly CsvImportEngine $importer,
 	) {}
 
 	/**
@@ -188,5 +190,103 @@ final class DataDeckCommand {
 	public function sync_json( array $args, array $assoc_args ): void {
 		$res = $this->views->sync_from_json();
 		WP_CLI::success( sprintf( 'Synced %d view(s) from datadeck-json/.', (int) $res['synced'] ) );
+	}
+
+	/**
+	 * Import CSV or JSON updates with automatic column mapping, dry-run preview, and rollback support.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <entity>
+	 * : Target entity slug (e.g. product, post, user).
+	 *
+	 * <file>
+	 * : Path to local CSV or JSON file.
+	 *
+	 * [--match=<key>]
+	 * : Column to match existing records on (id, sku, slug, user_email). Default: id.
+	 *
+	 * [--create-missing]
+	 * : Create new records for unmatched rows.
+	 *
+	 * [--dry-run]
+	 * : Preview changes without modifying the database.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp datadeck import product supplier-prices.csv --match=sku --dry-run
+	 *
+	 * @param array<int, string>   $args       Positional args.
+	 * @param array<string, mixed> $assoc_args Named options.
+	 */
+	public function import( array $args, array $assoc_args ): void {
+		$entity   = sanitize_key( (string) ( $args[0] ?? '' ) );
+		$filepath = (string) ( $args[1] ?? '' );
+		$match_by = sanitize_key( (string) ( $assoc_args['match'] ?? 'id' ) );
+		$create   = isset( $assoc_args['create-missing'] );
+		$dry_run  = isset( $assoc_args['dry-run'] );
+
+		if ( '' === $entity || '' === $filepath || ! is_readable( $filepath ) ) {
+			WP_CLI::error( 'Provide a valid entity slug and readable CSV/JSON file path.' );
+			return;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$raw = file_get_contents( $filepath );
+		if ( false === $raw ) {
+			WP_CLI::error( 'Failed to read import file.' );
+			return;
+		}
+
+		$format   = str_ends_with( strtolower( $filepath ), '.json' ) ? 'json' : 'csv';
+		$analysis = $this->importer->analyze( $entity, $raw, $format );
+		if ( is_wp_error( $analysis ) ) {
+			WP_CLI::error( $analysis->get_error_message() );
+			return;
+		}
+
+		$parsed = 'json' === $format ? $this->importer->parse_json( $raw ) : $this->importer->parse_csv( $raw );
+		if ( is_wp_error( $parsed ) ) {
+			WP_CLI::error( $parsed->get_error_message() );
+			return;
+		}
+
+		$mapping = is_array( $analysis['suggestedMapping'] ?? null ) ? $analysis['suggestedMapping'] : [];
+		if ( $dry_run ) {
+			$preview = $this->importer->dry_run( $entity, $parsed['rows'], $mapping, $match_by, $create );
+			if ( is_wp_error( $preview ) ) {
+				WP_CLI::error( $preview->get_error_message() );
+				return;
+			}
+			WP_CLI::log(
+				sprintf(
+					'Dry Run (%d rows): update=%d | create=%d | skip=%d | errors=%d',
+					(int) $preview['totalRows'],
+					(int) $preview['willUpdate'],
+					(int) $preview['willCreate'],
+					(int) $preview['willSkip'],
+					(int) $preview['errorsCount']
+				)
+			);
+			return;
+		}
+
+		$chunks     = array_chunk( $parsed['rows'], 50 );
+		$batch_uuid = null;
+		$updated    = 0;
+		$created    = 0;
+
+		foreach ( $chunks as $chunk ) {
+			$res = $this->importer->apply_chunk( $entity, $chunk, $mapping, $match_by, $create, $batch_uuid );
+			if ( is_wp_error( $res ) ) {
+				WP_CLI::error( $res->get_error_message() );
+				return;
+			}
+			$batch_uuid = (string) $res['batchUuid'];
+			$updated   += (int) $res['updated'];
+			$created   += (int) $res['created'];
+		}
+
+		WP_CLI::success( sprintf( 'Imported %d updated, %d created. Rollback UUID: %s', $updated, $created, (string) $batch_uuid ) );
 	}
 }

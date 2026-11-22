@@ -16,6 +16,8 @@ use DataDeck\Bulk\CampaignScheduler;
 use DataDeck\Cli\DataDeckCommand;
 use DataDeck\Entities\EntityRegistry;
 use DataDeck\Fields\AcfFieldProvider;
+use DataDeck\Fields\CommentFieldProvider;
+use DataDeck\Fields\ComputedFieldProvider;
 use DataDeck\Fields\CorePostFieldProvider;
 use DataDeck\Fields\FieldRegistry;
 use DataDeck\Fields\MediaFieldProvider;
@@ -28,6 +30,7 @@ use DataDeck\Fields\WooProductFieldProvider;
 use DataDeck\Formula\ExpressionEngine;
 use DataDeck\History\HistoryService;
 use DataDeck\History\Schema;
+use DataDeck\Import\CsvImportEngine;
 use DataDeck\Lenses\LensRegistry;
 use DataDeck\Query\KeysetStreamExporter;
 use DataDeck\Query\SelectiveHydrator;
@@ -56,19 +59,23 @@ final class Plugin {
 	private LensRegistry $lenses;
 	private ViewSyncService $views;
 	private KeysetStreamExporter $exporter;
+	private ComputedFieldProvider $computed_fields;
+	private CsvImportEngine $importer;
 
 	private function __construct() {
-		$this->hydrator  = new SelectiveHydrator();
-		$this->planner   = new SmartQueryPlanner();
-		$this->fields    = new FieldRegistry();
-		$this->entities  = new EntityRegistry( $this->fields, $this->planner, $this->hydrator );
-		$this->formula   = new ExpressionEngine();
-		$this->history   = new HistoryService( $this->entities, $this->fields );
-		$this->bulk      = new BulkOperationEngine( $this->entities, $this->fields, $this->history, $this->formula );
-		$this->scheduler = new CampaignScheduler( $this->bulk, $this->history );
-		$this->lenses    = new LensRegistry();
-		$this->views     = new ViewSyncService();
-		$this->exporter  = new KeysetStreamExporter();
+		$this->hydrator        = new SelectiveHydrator();
+		$this->planner         = new SmartQueryPlanner();
+		$this->fields          = new FieldRegistry();
+		$this->entities        = new EntityRegistry( $this->fields, $this->planner, $this->hydrator );
+		$this->formula         = new ExpressionEngine();
+		$this->history         = new HistoryService( $this->entities, $this->fields );
+		$this->bulk            = new BulkOperationEngine( $this->entities, $this->fields, $this->history, $this->formula );
+		$this->scheduler       = new CampaignScheduler( $this->bulk, $this->history );
+		$this->lenses          = new LensRegistry();
+		$this->views           = new ViewSyncService();
+		$this->exporter        = new KeysetStreamExporter();
+		$this->computed_fields = new ComputedFieldProvider( $this->formula );
+		$this->importer        = new CsvImportEngine( $this->entities, $this->fields, $this->history );
 	}
 
 	public static function instance(): self {
@@ -94,15 +101,22 @@ final class Plugin {
 		$this->fields->register( new WooProductFieldProvider() );
 		$this->fields->register( new WooOrderFieldProvider() );
 		$this->fields->register( new MediaFieldProvider() );
+		$this->fields->register( new CommentFieldProvider() );
 		$this->fields->register( new UserFieldProvider() );
 		$this->fields->register( new SeoFieldProvider() );
 		$this->fields->register( new AcfFieldProvider( $this->hydrator ) );
 		$this->fields->register( new MetaBoxFieldProvider() );
 		$this->fields->register( new NativeMetaFieldProvider() );
+		$this->fields->register( $this->computed_fields );
 
 		// Scheduled & auto-revert campaigns + daily history TTL pruning.
 		$this->scheduler->register_hooks();
-		add_action( 'datadeck_daily_prune', [ $this->history, 'prune_expired' ] );
+		add_action(
+			'datadeck_daily_prune',
+			function (): void {
+				$this->history->prune_expired();
+			}
+		);
 
 		// REST API layer.
 		$rest = new RestApi(
@@ -114,7 +128,9 @@ final class Plugin {
 			$this->lenses,
 			$this->views,
 			$this->exporter,
-			$this->formula
+			$this->formula,
+			$this->computed_fields,
+			$this->importer
 		);
 		add_action( 'rest_api_init', [ $rest, 'register_routes' ] );
 
@@ -130,7 +146,7 @@ final class Plugin {
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
 			\WP_CLI::add_command(
 				'datadeck',
-				new DataDeckCommand( $this->entities, $this->bulk, $this->history, $this->views )
+				new DataDeckCommand( $this->entities, $this->bulk, $this->history, $this->views, $this->importer )
 			);
 		}
 	}

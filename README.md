@@ -13,8 +13,9 @@
   <a href="https://github.com/duhanguler/datadeck/actions/workflows/plugin-check.yml"><img src="https://github.com/duhanguler/datadeck/actions/workflows/plugin-check.yml/badge.svg" alt="WordPress Plugin Check" /></a>
   <a href="https://github.com/duhanguler/datadeck/releases/latest"><img src="https://img.shields.io/github/v/release/duhanguler/datadeck?style=flat&color=3858e9" alt="Latest Release" /></a>
   <img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=flat" alt="PHP 8.1+" />
+  <img src="https://img.shields.io/badge/PHPStan-Level%206-2563eb?style=flat" alt="PHPStan Level 6" />
   <img src="https://img.shields.io/badge/WordPress-6.6%20%E2%80%93%207.1-21759B?style=flat" alt="WordPress 6.6 - 7.1" />
-  <img src="https://img.shields.io/badge/Initial%20Bundle-25.4%20KB%20gzip-1a7f37?style=flat" alt="25.4 KB gzip" />
+  <img src="https://img.shields.io/badge/Initial%20Bundle-29.2%20KB%20gzip-1a7f37?style=flat" alt="29.2 KB gzip" />
   <img src="https://img.shields.io/badge/Frontend%20Footprint-0%20Bytes-1a7f37?style=flat" alt="0 Bytes Frontend" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv2%2B-18181b?style=flat" alt="GPLv2+ License" /></a>
 </p>
@@ -22,7 +23,7 @@
 <p align="center">
   <a href="https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/duhanguler/datadeck/main/.wordpress-org/blueprints/blueprint.json"><strong>Try Live in Browser (WordPress Playground)</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/duhanguler/datadeck/releases/latest/download/datadeck.zip"><strong>Download datadeck.zip (138 KB)</strong></a>
+  <a href="https://github.com/duhanguler/datadeck/releases/latest/download/datadeck.zip"><strong>Download datadeck.zip</strong></a>
   &nbsp;&middot;&nbsp;
   <a href="#why-datadeck-vs-paid-alternatives"><strong>Comparison</strong></a>
   &nbsp;&middot;&nbsp;
@@ -64,15 +65,17 @@ Essential WordPress admin workflows—editing ACF/custom fields inline, adjustin
 
 | Capability | Admin Columns Pro (\$79–\$199/yr) | WP Sheet Editor (\$79+/module) | SwiftGrid Pro (\$69/yr) | **DataDeck (Free · GPLv2+)** |
 | :--- | :---: | :---: | :---: | :---: |
-| **Posts, Pages, CPTs, Media &amp; Users** | Paid for Inline/Bulk | Separate Paid Plugins | Products Only | **Included** |
+| **Posts, Pages, CPTs, Media, Comments &amp; Users** | Paid for Inline/Bulk | Separate Paid Plugins | Products Only | **Included** |
 | **WooCommerce Products + Inline Variations** | Paid Add-on | Separate Paid Plugin | Partial Free | **Included** |
 | **WooCommerce HPOS Orders** | Paid Add-on | Separate Paid Plugin | Not Supported | **Included** |
 | **ACF / SCF / Meta Box / Native Meta** | Business Tier+ | Paid | Paid | **Included** |
-| **Yoast SEO &amp; Rank Math Inline/Bulk** | Paid Add-on | Paid | Not Supported | **Included** |
-| **Excel / Google Sheets Paste (`Ctrl+V`) &amp; Fill (`⌘D`)** | Not Supported | Paid | Partial | **Included** |
-| **Safe AST Formulas (`if`, `round`, `.99`) + Dry-Run Diff** | Not Supported | Paid | Price Only | **Included** |
+| **Yoast, Rank Math, SEOPress &amp; AIOSEO Inline/Bulk** | Paid Add-on | Paid | Not Supported | **Included** |
+| **Excel Paste (`Ctrl+V`), Fill Handle &amp; Live `SUM/AVG`** | Not Supported | Paid | Partial | **Included** |
+| **Smart CSV / JSON Import + Dry-Run Diff + Rollback** | Not Supported | Paid | Paid | **Included** |
+| **Computed AST Formula Columns (`fx`)** | Not Supported | Not Supported | Not Supported | **Included** |
+| **Safe AST Bulk Formulas (`if`, `round`, `.99`) + Diff** | Not Supported | Paid | Price Only | **Included** |
 | **Scheduled &amp; Auto-Reverting Bulk Campaigns** | Not Supported | Not Supported | Paid | **Included** |
-| **Audit History &amp; One-Click Batch Rollback** | Not Supported | Not Supported | Paid | **Included** |
+| **Optimistic Concurrency Guard &amp; Cell/Batch Rollback** | Not Supported | Not Supported | Partial | **Included** |
 | **Git-Syncable Views (`datadeck-json/`)** | Developer Tier | Not Supported | Not Supported | **Included** |
 | **60 FPS Virtualized Grid + Constant `6–8 SQL`/Page** | Legacy `WP_List_Table` | Heavy DOM | Standard | **Included** |
 
@@ -80,20 +83,22 @@ Essential WordPress admin workflows—editing ACF/custom fields inline, adjustin
 
 ## Core Features
 
-* **Universal Entity Engine:** Switch seamlessly across **Posts, Pages, Custom Post Types, Media Library, Users, WooCommerce Products (with inline expandable Variations), and HPOS Orders**—or open directly from any native list screen via the `[ Classic List | DataDeck Grid ]` header toggle.
-* **True Spreadsheet Ergonomics:** `0px` layout-shift cell editing, 3 density modes (`Compact 30px` / `Default 36px` / `Comfortable 48px`), pinned sticky Title column, drag-to-resize headers, `Tab`/`Enter`/`Arrow` navigation, vertical range selection (`Shift+Click` / `Shift+Arrows`), **Excel/Google Sheets `Ctrl+C`/`Ctrl+V` matrix paste**, **Fill Down (`Cmd/Ctrl+D`)**, and **`Cmd/Ctrl+K` Command Palette**.
+* **Universal Entity Engine:** Switch seamlessly across **Posts, Pages, Custom Post Types, Media Library, Comments &amp; Reviews, Users, WooCommerce Products (with inline expandable Variations), and HPOS Orders**—or open directly from any native list screen via the `[ Classic List | DataDeck Grid ]` header toggle.
+* **True Excel/Sheets Spreadsheet Ergonomics:** `0px` layout-shift cell editing, 3 density modes (`Compact 30px` / `Default 36px` / `Comfortable 48px`), pinned sticky Title column, drag-to-resize &amp; **drag-and-drop column header reordering**, **corner Fill Handle** with smart series inference (`SKU-001` → `SKU-002`, numeric progressions), **Right-Click Context Menu** (*Filter by value*, *Exclude value*, *Copy*, *Apply to selected*, *Cell audit history*), **Live Aggregation Footer Bar** (`SUM`, `AVG`, `MIN`, `MAX`, `COUNT`), **Excel/Google Sheets `Ctrl+C`/`Ctrl+V` matrix paste**, **Fill Down (`Cmd/Ctrl+D`)**, and **`Cmd/Ctrl+K` Command Palette**.
+* **Smart CSV / JSON Import Wizard:** Upload or paste CSV/JSON spreadsheets, match existing records by **ID, SKU, Slug, or Email** in a single batch SQL lookup, auto-map headers, preview exact `old → new` row diffs before committing, apply in safe chunks, and undo the entire import in one click.
+* **Virtual Computed AST Formula Columns (`fx`):** Built-in WooCommerce *Discount %* and *Inventory Value* columns plus custom user-defined AST formulas evaluated live without writing to the database—automatically hydrating hidden dependency fields.
+* **Optimistic Concurrency Guard &amp; Cell-Level Rollback:** Detects concurrent edits from other admins before overwriting (showing server vs. local diffs with **Reload** or **Force Overwrite**), and tracks field-level history with **Single-Cell Restore** inside the Inspector drawer as well as full **One-Click Batch Rollback**.
 * **Staged Save &amp; Instant Save:** Stage multiple edits across rows with a subtle top-right cell indicator and `Cmd/Ctrl+Z` client undo before committing in one atomic batch—or switch to Instant Save for rapid single-field updates.
 * **Built-In Zero-Setup Audit Lenses:**
   * **WooCommerce:** *Pricing &amp; SKU Audit* (catches `sale_price >= regular_price`, missing prices/SKUs), *Inventory Risk* (out-of-stock &amp; low stock `<= 5`), *Missing Images*.
-  * **Content &amp; SEO:** *SEO Audit* (titles `> 60` chars, missing thumbnails/excerpts), *Content Hygiene*.
-  * **Media Accessibility:** *Missing Alt Text* lens for rapid bulk `alt` text editing.
+  * **Content &amp; SEO:** *SEO Audit* (Yoast, Rank Math, SEOPress &amp; AIOSEO — titles `> 60` chars, missing thumbnails/excerpts), *Content Hygiene*.
+  * **Media &amp; Comments:** *Missing Alt Text*, *Pending Moderation*, *Product Reviews*, *Spam Queue*.
 * **Safe AST Formula Bulk Engine (Zero `eval()`):** Compiles expressions once into a reusable AST using a strict recursive-descent parser with an explicit pure-function allowlist:
   * `if(regular_price > 0, round(regular_price * 0.85, 0) - 0.01, '')`
   * `if(stock_quantity == 0, 'outofstock', 'instock')`
   * `concat(upper(trim(sku)), ' - ', title)`
   * Templates: `{title} — {site_name} ({year})`
-* **Delta-Snapshot History &amp; Scheduled Auto-Revert Campaigns:** Every inline commit, clipboard paste, and bulk operation records exact `old -> new` field deltas in `{prefix}_datadeck_batches` / `{prefix}_datadeck_changes`. Roll back any mistake in one click, or schedule a weekend sale that **automatically reverts every modified product back to its exact pre-campaign price** on Monday morning.
-* **Agency &amp; Developer Workflow:** Role-scoped Saved Views with automatic **`datadeck-json/`** theme folder sync (just like `acf-json/`), full **WP-CLI** commands, and **WordPress 6.9+ Abilities API** registration.
+* **Scheduled Auto-Revert Campaigns &amp; Developer Workflow:** Schedule weekend sales that automatically revert to exact pre-campaign prices, sync role-scoped Saved Views via Git (`datadeck-json/`), automate via **WP-CLI**, and connect safely through the **WordPress 6.9+ Abilities API**.
 
 ---
 
@@ -104,10 +109,10 @@ Engineered for **100,000+ SKU catalogs** and enforced by automated budgets in CI
 | Metric | Measured Result | Engineering Mechanism |
 | :--- | :--- | :--- |
 | **Public Frontend Footprint** | **`0 B` JS · `0 B` CSS · `0` SQL** | Early-exit context guard in `datadeck.php` registers zero hooks on public requests |
-| **Initial Workspace Bundle** | **`25.4 KB` gzip** *(CI gate `<= 45 KB`)* | WP Core externalization + `React.lazy()` code-splitting for all modals &amp; drawers |
+| **Initial Workspace Bundle** | **`29.2 KB` gzip** *(CI gate `<= 45 KB`)* | WP Core externalization + `React.lazy()` code-splitting for all 6 modals &amp; drawers |
 | **Native List Switcher** | **`0.66 KB` gzip** | Zero-dependency toggle loaded only on supported `wp-admin` list screens |
-| **Release Archive Size** | **`137.6 KB` total ZIP** | Clean production build with lightweight PSR-4 autoloader (zero runtime vendor bloat) |
-| **50 Products + ACF + Terms** | **`8 SQL` · `~1.8 ms`** *(constant O(1))* | `SmartQueryPlanner` routes price/SKU/stock to indexed `wc_product_meta_lookup`; `SelectiveHydrator` fetches only visible meta keys &amp; skips multi-MB `_elementor_data` blobs |
+| **Static Analysis &amp; Standards** | **PHPStan L6 (`0`) · WPCS (`0`) · PCP (`0`)** | Enforced across PHP 8.1 / 8.2 / 8.3 in GitHub Actions CI |
+| **50 Products + ACF + Terms** | **`8 SQL` · `~2.0 ms`** *(constant O(1))* | `SmartQueryPlanner` routes price/SKU/stock to indexed `wc_product_meta_lookup`; `SelectiveHydrator` fetches only visible meta keys &amp; skips multi-MB `_elementor_data` blobs |
 | **50 Posts + SEO + Terms** | **`5–6 SQL` · `~1.2 ms`** | Two-step ID planner (`no_found_rows`) + single-query selective term hydration |
 | **50,000-Row CSV Export** | **Constant `~15 MB` PHP RAM** | Keyset cursor (`WHERE ID > $last_id`) streaming directly to `php://output` with formula-injection neutralization |
 
@@ -159,12 +164,13 @@ Visit `http://localhost:8888/wp-admin/admin.php?page=datadeck` (`admin` / `passw
 wp datadeck status --user=admin
 wp datadeck benchmark product --per-page=100 --user=admin
 wp datadeck bulk product --field=sale_price --action=formula --value="if(regular_price > 0, round(regular_price * 0.85, 0) - 0.01, '')" --dry-run --user=admin
+wp datadeck import product supplier-prices.csv --match=sku --dry-run --user=admin
 wp datadeck rollback <batch-uuid> --user=admin
 wp datadeck sync-json --user=admin
 
 # Quality gates
-npm run typecheck && npm run build && npm run check:budget
-composer test:unit && composer lint:php
+npm run typecheck && npm run test:js && npm run build && npm run check:budget
+composer test:unit && composer lint:php && composer stan
 node scripts/build-release-zip.mjs
 ```
 

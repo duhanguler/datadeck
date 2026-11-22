@@ -93,7 +93,7 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 		return $this->planner->stream_post_ids( $request, [ 'attachment' ], $field_map, $after_id, $limit, [ 'inherit' ] );
 	}
 
-	public function duplicate_record( int $record_id ): int|WP_Error {
+	public function duplicate_record( int $record_id ): WP_Error {
 		return new WP_Error( 'datadeck_unsupported', __( 'Media attachments cannot be duplicated inline.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 

@@ -147,11 +147,13 @@ class PostEntityAdapter implements EntityAdapterInterface {
 
 		$rows = [];
 		foreach ( $ids as $id ) {
+			$post        = get_post( $id );
 			$rows[ $id ] = [
-				'id'       => $id,
-				'_editUrl' => $this->get_edit_url( $id ),
-				'_viewUrl' => $this->get_view_url( $id ),
-				'_canEdit' => $this->can_edit( $id ),
+				'id'          => $id,
+				'_editUrl'    => $this->get_edit_url( $id ),
+				'_viewUrl'    => $this->get_view_url( $id ),
+				'_canEdit'    => $this->can_edit( $id ),
+				'_modifiedAt' => $post ? (string) $post->post_modified_gmt : '',
 			];
 		}
 

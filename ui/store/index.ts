@@ -162,6 +162,12 @@ const actions = {
 	setVisibleColumns( columns: string[] ) {
 		return { type: 'SET_VISIBLE_COLUMNS', columns };
 	},
+	reorderColumns( fromId: string, toId: string ) {
+		return { type: 'REORDER_COLUMNS', fromId, toId };
+	},
+	setFields( fields: FieldDefinition[] ) {
+		return { type: 'SET_FIELDS', fields };
+	},
 	setColumnWidth( fieldId: string, width: number ) {
 		return { type: 'SET_COLUMN_WIDTH', fieldId, width };
 	},
@@ -204,8 +210,12 @@ const actions = {
 	setCommitting( committing: boolean ) {
 		return { type: 'SET_COMMITTING', committing };
 	},
-	applyCommittedEdits( edits: StagedEdit[], errors: Record<string, string> ) {
-		return { type: 'APPLY_COMMITTED_EDITS', edits, errors };
+	applyCommittedEdits(
+		edits: StagedEdit[],
+		errors: Record<string, string>,
+		modifiedMap: Record<string, string> = {}
+	) {
+		return { type: 'APPLY_COMMITTED_EDITS', edits, errors, modifiedMap };
 	},
 	setExpandedVariations( parentId: number, rows: RecordRow[] | null ) {
 		return { type: 'SET_EXPANDED_VARIATIONS', parentId, rows };
@@ -331,6 +341,39 @@ function reducer( state: WorkspaceState = DEFAULT_STATE, action: Action ): Works
 
 		case 'SET_VISIBLE_COLUMNS':
 			return { ...state, visibleColumns: action.columns as string[] };
+
+		case 'REORDER_COLUMNS': {
+			const fromId = action.fromId as string;
+			const toId = action.toId as string;
+			const list = [ ...state.visibleColumns ];
+			const fromIdx = list.indexOf( fromId );
+			const toIdx = list.indexOf( toId );
+			if ( fromIdx < 0 || toIdx < 0 || fromIdx === toIdx ) {
+				return state;
+			}
+			const [ moved ] = list.splice( fromIdx, 1 );
+			list.splice( toIdx, 0, moved );
+			return { ...state, visibleColumns: list };
+		}
+
+		case 'SET_FIELDS': {
+			const nextFields = action.fields as FieldDefinition[];
+			const nextMap: Record<string, FieldDefinition> = {};
+			const nextWidths: Record<string, number> = { ...state.columnWidths };
+			for ( const f of nextFields ) {
+				nextMap[ f.id ] = f;
+				if ( ! nextWidths[ f.id ] ) {
+					nextWidths[ f.id ] = f.width;
+				}
+			}
+			return {
+				...state,
+				fields: nextFields,
+				fieldMap: nextMap,
+				columnWidths: nextWidths,
+				visibleColumns: state.visibleColumns.filter( ( id ) => Boolean( nextMap[ id ] ) ),
+			};
+		}
 
 		case 'SET_COLUMN_WIDTH':
 			return {
@@ -465,6 +508,7 @@ function reducer( state: WorkspaceState = DEFAULT_STATE, action: Action ): Works
 		case 'APPLY_COMMITTED_EDITS': {
 			const edits = action.edits as StagedEdit[];
 			const errors = action.errors as Record<string, string>;
+			const modifiedMap = ( action.modifiedMap as Record<string, string> ) || {};
 			const succeededByRecord: Record<number, Record<string, unknown>> = {};
 			const remainingStaged = { ...state.stagedEdits };
 
@@ -481,7 +525,15 @@ function reducer( state: WorkspaceState = DEFAULT_STATE, action: Action ): Works
 
 			const patchRow = ( row: RecordRow ): RecordRow => {
 				const updates = succeededByRecord[ row.id ];
-				return updates ? { ...row, ...updates } : row;
+				const nextMod = modifiedMap[ String( row.id ) ];
+				if ( ! updates && ! nextMod ) {
+					return row;
+				}
+				return {
+					...row,
+					...( updates || {} ),
+					...( nextMod ? { _modifiedAt: nextMod } : {} ),
+				};
 			};
 
 			const nextExpanded: Record<number, RecordRow[]> = {};

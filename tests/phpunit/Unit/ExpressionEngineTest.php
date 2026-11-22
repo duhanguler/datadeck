@@ -85,4 +85,13 @@ final class ExpressionEngineTest extends TestCase {
 		$this->assertEqualsWithDelta( 89.0, (float) $this->engine->evaluate_ast( $ast, [ 'regular_price' => 99 ] ), 1e-6 );
 		$this->assertEqualsWithDelta( 9.99, (float) $this->engine->evaluate_ast( $ast, [ 'regular_price' => 12 ] ), 1e-6 );
 	}
+
+	public function test_extracts_unique_variables_from_computed_formula(): void {
+		$expr = 'if(regular_price > 0 && sale_price > 0, round((1 - sale_price / regular_price) * 100, 0), 0)';
+		$vars = $this->engine->extract_variables( $expr );
+		$this->assertSame( [ 'regular_price', 'sale_price' ], $vars );
+
+		$this->assertSame( [], $this->engine->extract_variables( '10 + 20 * 3' ) );
+		$this->assertSame( [], $this->engine->extract_variables( 'invalid(((syntax' ) );
+	}
 }

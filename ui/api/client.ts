@@ -2,12 +2,18 @@ import apiFetch from '@wordpress/api-fetch';
 import type {
 	BulkChunkResponse,
 	BulkRule,
+	ConflictItem,
+	CsvAnalyzeResponse,
+	CsvApplyResponse,
+	CsvDryRunResponse,
 	DensityMode,
 	DryRunResponse,
 	EntitySchemaResponse,
+	FieldDefinition,
 	FilterClause,
 	HistoryBatch,
 	HistoryDetail,
+	RecordHistoryEntry,
 	RecordRow,
 	RecordsResponse,
 	SaveMode,
@@ -128,17 +134,20 @@ export async function deleteRecords(
 
 export async function commitEdits(
 	entity: string,
-	edits: Array<{ id: number; field: string; value: unknown }>,
-	mode: 'inline' | 'paste' = 'inline'
+	edits: Array<{ id: number; field: string; value: unknown; expectedModifiedAt?: string }>,
+	mode: 'inline' | 'paste' = 'inline',
+	force = false
 ): Promise<{
 	updated: number;
 	errors: Array<{ id: number; field: string; message: string }>;
+	conflicts: ConflictItem[];
+	modifiedMap: Record<string, string>;
 	batchUuid: string;
 }> {
 	return apiFetch( {
 		path: `${ REST_PREFIX }batch/${ encodeURIComponent( entity ) }`,
 		method: 'POST',
-		data: { mode, edits },
+		data: { mode, edits, force },
 	} );
 }
 
@@ -296,4 +305,90 @@ export function buildExportUrl(
 		flatten_variations: params.flatten_variations ? 1 : undefined,
 	} );
 	return `${ root }export/${ encodeURIComponent( entity ) }${ qs }`;
+}
+
+export async function fetchRecordHistory(
+	entity: string,
+	recordId: number,
+	field?: string
+): Promise<{ changes: RecordHistoryEntry[] }> {
+	const qs = buildQueryString( { field, limit: 50 } );
+	return apiFetch( {
+		path: `${ REST_PREFIX }history/record/${ encodeURIComponent( entity ) }/${ recordId }${ qs }`,
+	} );
+}
+
+export async function rollbackSingleChange(
+	changeId: number
+): Promise<{ objectId: number; field: string; restoredValue: unknown; rollbackUuid: string }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }history/change/${ changeId }/rollback`,
+		method: 'POST',
+	} );
+}
+
+export async function saveComputedField(
+	entity: string,
+	payload: { label: string; formula: string; format: 'number' | 'currency' | 'percent' | 'text'; id?: string }
+): Promise<{ computedField: { id: string; label: string; formula: string; format: string }; fields: FieldDefinition[] }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }computed-fields/${ encodeURIComponent( entity ) }`,
+		method: 'POST',
+		data: payload,
+	} );
+}
+
+export async function deleteComputedField(
+	entity: string,
+	fieldId: string
+): Promise<{ deleted: boolean; fields: FieldDefinition[] }> {
+	return apiFetch( {
+		path: `${ REST_PREFIX }computed-fields/${ encodeURIComponent( entity ) }/${ encodeURIComponent( fieldId ) }`,
+		method: 'DELETE',
+	} );
+}
+
+export async function analyzeImport(
+	entity: string,
+	content: string,
+	format: 'csv' | 'json' = 'csv'
+): Promise<CsvAnalyzeResponse> {
+	return apiFetch<CsvAnalyzeResponse>( {
+		path: `${ REST_PREFIX }import/${ encodeURIComponent( entity ) }/analyze`,
+		method: 'POST',
+		data: { content, format },
+	} );
+}
+
+export async function dryRunImport(
+	entity: string,
+	payload: {
+		rows: Array<Record<string, unknown>>;
+		mapping: Record<string, string>;
+		matchBy: string;
+		createMissing: boolean;
+	}
+): Promise<CsvDryRunResponse> {
+	return apiFetch<CsvDryRunResponse>( {
+		path: `${ REST_PREFIX }import/${ encodeURIComponent( entity ) }/dry-run`,
+		method: 'POST',
+		data: payload,
+	} );
+}
+
+export async function applyImportChunk(
+	entity: string,
+	payload: {
+		rows: Array<Record<string, unknown>>;
+		mapping: Record<string, string>;
+		matchBy: string;
+		createMissing: boolean;
+		batchUuid?: string;
+	}
+): Promise<CsvApplyResponse> {
+	return apiFetch<CsvApplyResponse>( {
+		path: `${ REST_PREFIX }import/${ encodeURIComponent( entity ) }/apply`,
+		method: 'POST',
+		data: payload,
+	} );
 }

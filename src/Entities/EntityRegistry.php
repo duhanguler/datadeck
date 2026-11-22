@@ -68,8 +68,9 @@ final class EntityRegistry {
 			$this->register( new PostEntityAdapter( (string) $slug, $this->fields, $this->planner, $this->hydrator ) );
 		}
 
-		// Media Library & Users.
+		// Media Library, Comments & Users.
 		$this->register( new MediaEntityAdapter( $this->fields, $this->planner, $this->hydrator ) );
+		$this->register( new CommentEntityAdapter( $this->fields, $this->hydrator ) );
 		$this->register( new UserEntityAdapter( $this->fields, $this->hydrator ) );
 
 		/**

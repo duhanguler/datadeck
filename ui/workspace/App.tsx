@@ -12,6 +12,7 @@ import {
 	search as searchIcon,
 	trash,
 	undo,
+	upload,
 } from '@wordpress/icons';
 import {
 	buildExportUrl,
@@ -26,13 +27,22 @@ import {
 	type RecordsQueryParams,
 } from '../api/client';
 import { cellKey, STORE_NAME, type WorkspaceState } from '../store';
-import type { DensityMode, FieldDefinition, RecordRow, SaveMode, StagedEdit } from '../types';
+import type {
+	ConflictItem,
+	DensityMode,
+	FieldDefinition,
+	RecordRow,
+	SaveMode,
+	StagedEdit,
+} from '../types';
 import { FilterBar } from './FilterBar';
+import { GridContextMenu, type ContextMenuState } from './GridContextMenu';
 import { SpreadsheetGrid } from './SpreadsheetGrid';
 import type { PaletteCommand } from '../modals/CommandPalette';
 
 // Code-split heavy drawers & modals so initial boot bundle stays strictly < 45 KB gzipped.
 const BulkFormulaModal = lazy( () => import( /* webpackChunkName: "bulk-modal" */ '../modals/BulkFormulaModal' ) );
+const CsvImportModal = lazy( () => import( /* webpackChunkName: "import-modal" */ '../modals/CsvImportModal' ) );
 const HistoryDrawer = lazy( () => import( /* webpackChunkName: "history-drawer" */ '../modals/HistoryDrawer' ) );
 const ColumnsViewsModal = lazy( () => import( /* webpackChunkName: "columns-modal" */ '../modals/ColumnsViewsModal' ) );
 const InspectorDrawer = lazy( () => import( /* webpackChunkName: "inspector-drawer" */ '../modals/InspectorDrawer' ) );
@@ -52,10 +62,21 @@ export function App() {
 	const [ quickSku, setQuickSku ] = useState( '' );
 
 	const [ showBulkModal, setShowBulkModal ] = useState( false );
+	const [ showImportModal, setShowImportModal ] = useState( false );
 	const [ showHistory, setShowHistory ] = useState( false );
 	const [ showColumns, setShowColumns ] = useState( false );
 	const [ showPalette, setShowPalette ] = useState( false );
-	const [ inspectRecord, setInspectRecord ] = useState<RecordRow | null>( null );
+	const [ inspectRecord, setInspectRecord ] = useState<{
+		record: RecordRow;
+		tab: 'edit' | 'history';
+		field?: string;
+	} | null>( null );
+	const [ contextMenu, setContextMenu ] = useState<ContextMenuState | null>( null );
+	const [ conflicts, setConflicts ] = useState<{
+		items: ConflictItem[];
+		pendingEdits: StagedEdit[];
+		mode: 'inline' | 'paste';
+	} | null>( null );
 	const [ searchInput, setSearchInput ] = useState( '' );
 
 	const visibleFieldDefs: FieldDefinition[] = useMemo(
@@ -183,24 +204,55 @@ export function App() {
 		[ dispatch ]
 	);
 
-	// Commit staged edits (or instant single-cell edits).
+	// Commit staged edits (or instant single-cell edits) with optimistic concurrency checking.
 	const executeCommit = useCallback(
-		async ( editsToCommit: StagedEdit[], mode: 'inline' | 'paste' = 'inline' ) => {
+		async ( editsToCommit: StagedEdit[], mode: 'inline' | 'paste' = 'inline', force = false ) => {
 			if ( editsToCommit.length === 0 ) {
 				return;
 			}
 			dispatch.setCommitting( true );
 			try {
+				const recordMap: Record<number, RecordRow> = {};
+				for ( const r of state.records ) {
+					recordMap[ r.id ] = r;
+				}
+				for ( const children of Object.values( state.expandedParents ) ) {
+					for ( const c of children ) {
+						recordMap[ c.id ] = c;
+					}
+				}
+
 				const res = await commitEdits(
 					state.entity,
-					editsToCommit.map( ( e ) => ( { id: e.recordId, field: e.fieldId, value: e.newValue } ) ),
-					mode
+					editsToCommit.map( ( e ) => ( {
+						id: e.recordId,
+						field: e.fieldId,
+						value: e.newValue,
+						expectedModifiedAt: recordMap[ e.recordId ]?._modifiedAt || undefined,
+					} ) ),
+					mode,
+					force
 				);
 				const errorMap: Record<string, string> = {};
-				for ( const err of res.errors ) {
+				for ( const err of res.errors || [] ) {
 					errorMap[ cellKey( err.id, err.field ) ] = err.message;
 				}
-				dispatch.applyCommittedEdits( editsToCommit, errorMap );
+				const conflictSet = new Set( ( res.conflicts || [] ).map( ( c ) => cellKey( c.id, c.field ) ) );
+				const nonConflicted = editsToCommit.filter( ( e ) => ! conflictSet.has( cellKey( e.recordId, e.fieldId ) ) );
+
+				dispatch.applyCommittedEdits( nonConflicted, errorMap, res.modifiedMap || {} );
+
+				if ( res.conflicts && res.conflicts.length > 0 ) {
+					setConflicts( {
+						items: res.conflicts,
+						pendingEdits: editsToCommit.filter( ( e ) => conflictSet.has( cellKey( e.recordId, e.fieldId ) ) ),
+						mode,
+					} );
+					showToast( `${ res.conflicts.length } ${ __( 'concurrent edit conflict(s) detected', 'datadeck' ) }` );
+				} else {
+					setConflicts( null );
+				}
+
 				if ( res.updated > 0 ) {
 					showToast(
 						`${ res.updated } ${ __( 'change(s) saved', 'datadeck' ) }`,
@@ -212,7 +264,7 @@ export function App() {
 				showToast( err instanceof Error ? err.message : __( 'Save failed', 'datadeck' ) );
 			}
 		},
-		[ state.entity, dispatch, showToast ]
+		[ state.entity, state.records, state.expandedParents, dispatch, showToast ]
 	);
 
 	const handleStageOrSave = useCallback(
@@ -335,8 +387,9 @@ export function App() {
 	const paletteCommands: PaletteCommand[] = useMemo( () => {
 		const cmds: PaletteCommand[] = [
 			{ id: 'bulk', label: __( 'Open Bulk Edit & AST Formula Engine', 'datadeck' ), hint: 'Bulk', run: () => setShowBulkModal( true ) },
+			{ id: 'import', label: __( 'Import CSV / JSON (Match by ID or SKU)', 'datadeck' ), hint: 'Import', run: () => setShowImportModal( true ) },
 			{ id: 'history', label: __( 'Open Change History & Rollback Drawer', 'datadeck' ), hint: 'Audit', run: () => setShowHistory( true ) },
-			{ id: 'cols', label: __( 'Manage Columns & Saved Views', 'datadeck' ), hint: 'Views', run: () => setShowColumns( true ) },
+			{ id: 'cols', label: __( 'Manage Columns, Formulas & Saved Views', 'datadeck' ), hint: 'Views', run: () => setShowColumns( true ) },
 			{ id: 'export-csv', label: __( 'Export Filtered Records as CSV (Streaming)', 'datadeck' ), hint: 'CSV', run: () => window.open( buildExportUrl( state.entity, queryParams, 'csv' ), '_blank' ) },
 			{ id: 'export-json', label: __( 'Export Filtered Records as JSON', 'datadeck' ), hint: 'JSON', run: () => window.open( buildExportUrl( state.entity, queryParams, 'json' ), '_blank' ) },
 			{ id: 'dens-compact', label: __( 'Density: Compact (30px spreadsheet)', 'datadeck' ), run: () => handleDensityChange( 'compact' ) },
@@ -401,7 +454,17 @@ export function App() {
 						<input
 							type="text"
 							className="rc-search-input"
-							placeholder={ __( 'Search title, ID, SKU…', 'datadeck' ) }
+							placeholder={
+								state.entity === 'product'
+									? __( 'Search title, ID, SKU…', 'datadeck' )
+									: state.entity === 'comment'
+									? __( 'Search comment, author…', 'datadeck' )
+									: state.entity === 'user'
+									? __( 'Search user, email…', 'datadeck' )
+									: state.entity === 'shop_order'
+									? __( 'Search order #, email…', 'datadeck' )
+									: __( 'Search title, ID, slug…', 'datadeck' )
+							}
 							value={ searchInput }
 							onChange={ ( e ) => setSearchInput( e.target.value ) }
 						/>
@@ -428,15 +491,21 @@ export function App() {
 						<button
 							type="button"
 							className={ `rc-btn ${ showQuickAdd ? 'rc-btn--active' : '' }` }
+							title={ __( 'Create a new draft row', 'datadeck' ) }
 							onClick={ () => setShowQuickAdd( ( v ) => ! v ) }
 						>
 							<Icon icon={ plus } size={ 15 } />
-							{ __( 'New Row', 'datadeck' ) }
+							{ __( 'New', 'datadeck' ) }
 						</button>
 					) }
 
-					<button type="button" className="rc-btn" onClick={ () => setShowBulkModal( true ) }>
-						{ __( 'Bulk Edit', 'datadeck' ) }
+					<button
+						type="button"
+						className="rc-btn"
+						title={ __( 'Bulk Edit & AST Formula Engine', 'datadeck' ) }
+						onClick={ () => setShowBulkModal( true ) }
+					>
+						{ __( 'Bulk', 'datadeck' ) }
 					</button>
 
 					<button type="button" className="rc-btn" onClick={ () => setShowColumns( true ) }>
@@ -449,6 +518,11 @@ export function App() {
 						{ __( 'History', 'datadeck' ) }
 					</button>
 
+					<button type="button" className="rc-btn" onClick={ () => setShowImportModal( true ) }>
+						<Icon icon={ upload } size={ 15 } />
+						{ __( 'Import', 'datadeck' ) }
+					</button>
+
 					<a
 						className="rc-btn"
 						href={ buildExportUrl( state.entity, queryParams, 'csv' ) }
@@ -457,8 +531,6 @@ export function App() {
 						<Icon icon={ download } size={ 15 } />
 						CSV
 					</a>
-
-					<span className="rc-divider-v" />
 
 					<div className="rc-segmented" role="group" aria-label={ __( 'Row density', 'datadeck' ) }>
 						{ ( [ 'compact', 'default', 'comfortable' ] as DensityMode[] ).map( ( d ) => (
@@ -661,6 +733,39 @@ export function App() {
 				</div>
 			) }
 
+			{/* Optimistic Concurrency Conflict Resolution Strip */}
+			{ conflicts && conflicts.items.length > 0 && (
+				<div className="rc-conflict-bar" role="alert">
+					<div>
+						<strong>{ __( 'Concurrent Edit Conflict:', 'datadeck' ) }</strong>{ ' ' }
+						{ `${ conflicts.items.length } ${ __( 'field(s) were modified on the server while you were editing.', 'datadeck' ) }` }
+						<span style={ { marginLeft: '8px', fontFamily: 'var(--rc-font-mono)', fontSize: '11.5px' } }>
+							{ `#${ conflicts.items[ 0 ].id } ${ conflicts.items[ 0 ].field }: server="${ String( conflicts.items[ 0 ].serverValue ?? '' ) }" vs yours="${ String( conflicts.items[ 0 ].attemptedValue ?? '' ) }"` }
+						</span>
+					</div>
+					<div style={ { display: 'flex', gap: '6px', flexShrink: 0 } }>
+						<button
+							type="button"
+							className="rc-btn"
+							onClick={ () => {
+								setConflicts( null );
+								dispatch.discardStaged();
+								reloadRecords();
+							} }
+						>
+							{ __( 'Reload Server Values', 'datadeck' ) }
+						</button>
+						<button
+							type="button"
+							className="rc-btn rc-btn--danger"
+							onClick={ () => executeCommit( conflicts.pendingEdits, conflicts.mode, true ) }
+						>
+							{ __( 'Force Overwrite', 'datadeck' ) }
+						</button>
+					</div>
+				</div>
+			) }
+
 			{/* Main Virtualized 60 FPS Spreadsheet Grid */}
 			<SpreadsheetGrid
 				records={ state.records }
@@ -681,6 +786,7 @@ export function App() {
 					dispatch.setQueryParam( { sortField: fid, sortDirection: dir, page: 1 } );
 				} }
 				onResizeColumn={ ( fid, width ) => dispatch.setColumnWidth( fid, width ) }
+				onReorderColumns={ ( fromId, toId ) => dispatch.reorderColumns( fromId, toId ) }
 				onToggleSelectRow={ ( id ) => dispatch.toggleSelectRow( id ) }
 				onToggleSelectAll={ ( ids ) => dispatch.setSelectedIds( ids ) }
 				onFocusCell={ ( cell ) => dispatch.setFocusedCell( cell ) }
@@ -688,8 +794,9 @@ export function App() {
 				onSelectRange={ ( range ) => dispatch.setSelectedRange( range ) }
 				onStageOrSaveEdits={ handleStageOrSave }
 				onToggleVariations={ handleToggleVariations }
-				onInspectRow={ ( row ) => setInspectRecord( row ) }
+				onInspectRow={ ( row ) => setInspectRecord( { record: row, tab: 'edit' } ) }
 				onDuplicateRow={ handleDuplicate }
+				onOpenContextMenu={ ( menu ) => setContextMenu( menu ) }
 			/>
 
 			{/* 36px Footer with Pagination & Live SQL Query Budget Telemetry */}
@@ -757,6 +864,20 @@ export function App() {
 					/>
 				) }
 
+				{ showImportModal && (
+					<CsvImportModal
+						entity={ state.entity }
+						entityLabel={ state.entityMeta?.pluralLabel || state.entity }
+						fields={ state.fields }
+						onClose={ () => setShowImportModal( false ) }
+						onCompleted={ ( msg, uuid ) => {
+							setShowImportModal( false );
+							reloadRecords();
+							showToast( msg, uuid );
+						} }
+					/>
+				) }
+
 				{ showHistory && (
 					<HistoryDrawer
 						entity={ state.entity }
@@ -782,6 +903,7 @@ export function App() {
 						views={ state.views }
 						jsonSync={ state.jsonSync }
 						onUpdateColumns={ ( cols ) => dispatch.setVisibleColumns( cols ) }
+						onUpdateFields={ ( nextFields ) => dispatch.setFields( nextFields ) }
 						onUpdateViews={ ( views ) => dispatch.setViews( views ) }
 						onClose={ () => setShowColumns( false ) }
 					/>
@@ -789,9 +911,16 @@ export function App() {
 
 				{ inspectRecord && (
 					<InspectorDrawer
-						record={ inspectRecord }
+						entity={ state.entity }
+						record={ inspectRecord.record }
 						fields={ state.fields }
+						initialTab={ inspectRecord.tab }
+						initialHistoryField={ inspectRecord.field }
 						onStageEdits={ ( edits ) => handleStageOrSave( edits, 'inline' ) }
+						onRestoredCell={ ( msg ) => {
+							reloadRecords();
+							showToast( msg );
+						} }
 						onClose={ () => setInspectRecord( null ) }
 					/>
 				) }
@@ -800,6 +929,61 @@ export function App() {
 					<CommandPalette commands={ paletteCommands } onClose={ () => setShowPalette( false ) } />
 				) }
 			</Suspense>
+
+			{ contextMenu && (
+				<GridContextMenu
+					menu={ contextMenu }
+					selectedCount={ selectedIdList.length }
+					onFilterEquals={ ( field, val ) => {
+						const op = field.type === 'select' || field.type === 'taxonomy' ? 'is' : 'equals';
+						const next = [
+							...state.filters,
+							{ id: `ctx_${ Date.now() }`, field: field.id, operator: op, value: String( val ) },
+						];
+						setShowFilters( true );
+						dispatch.setQueryParam( { filters: next, page: 1 } );
+					} }
+					onFilterNotEquals={ ( field, val ) => {
+						const op = field.type === 'select' || field.type === 'taxonomy' ? 'is_not' : 'not_equals';
+						const next = [
+							...state.filters,
+							{ id: `ctx_${ Date.now() }`, field: field.id, operator: op, value: String( val ) },
+						];
+						setShowFilters( true );
+						dispatch.setQueryParam( { filters: next, page: 1 } );
+					} }
+					onCopyValue={ ( val ) => {
+						const txt = val === null || val === undefined ? '' : typeof val === 'object' ? JSON.stringify( val ) : String( val );
+						if ( navigator.clipboard?.writeText ) {
+							navigator.clipboard.writeText( txt ).catch( () => {} );
+						}
+						showToast( __( 'Copied cell value', 'datadeck' ) );
+					} }
+					onApplyToSelected={ ( field, val ) => {
+						const byId: Record<number, RecordRow> = {};
+						state.records.forEach( ( r ) => {
+							byId[ r.id ] = r;
+						} );
+						const edits: StagedEdit[] = selectedIdList
+							.filter( ( id ) => byId[ id ] && byId[ id ]._canEdit !== false )
+							.map( ( id ) => ( {
+								recordId: id,
+								fieldId: field.id,
+								oldValue: byId[ id ][ field.id ],
+								newValue: val,
+							} ) );
+						if ( edits.length > 0 ) {
+							handleStageOrSave( edits, 'inline' );
+							showToast( `${ __( 'Applied to', 'datadeck' ) } ${ edits.length } ${ __( 'selected row(s)', 'datadeck' ) }` );
+						}
+					} }
+					onInspectHistory={ ( record, fieldId ) =>
+						setInspectRecord( { record, tab: 'history', field: fieldId } )
+					}
+					onDuplicateRow={ handleDuplicate }
+					onClose={ () => setContextMenu( null ) }
+				/>
+			) }
 
 			{/* Quiet Toast with One-Click Rollback */}
 			{ state.toast && (

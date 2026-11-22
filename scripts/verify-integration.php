@@ -116,6 +116,85 @@ if ( $post_adapter ) {
 	$assert( $pres->total >= 1, sprintf( 'Posts SEO Audit lens caught %d posts needing attention', $pres->total ) );
 }
 
+// 9. v1.1 Computed Formula Columns (built-in + hidden dependency auto-hydration).
+if ( $prod_adapter ) {
+	$cres = $prod_adapter->query(
+		QueryRequest::from_array(
+			'product',
+			[
+				'per_page' => 10,
+				'fields'   => 'id,title,computed_inventory_value,computed_discount_pct',
+			]
+		)
+	);
+	$assert(
+		isset( $cres->items[0]['computed_inventory_value'] ) && is_numeric( $cres->items[0]['computed_inventory_value'] ),
+		'Computed virtual columns hydrated automatically even when regular_price/stock_quantity were hidden'
+	);
+
+	// 10. v1.1 Optimistic Concurrency Guard (stale modified_gmt detection).
+	$simple_row = null;
+	foreach ( $cres->items as $item ) {
+		$wc = wc_get_product( (int) $item['id'] );
+		if ( $wc && $wc->is_type( 'simple' ) && '' !== (string) $wc->get_sku() ) {
+			$simple_row = $item;
+			break;
+		}
+	}
+	$cid          = $simple_row ? (int) $simple_row['id'] : (int) $cres->items[0]['id'];
+	$stale_commit = $bulk->commit_cell_edits(
+		'product',
+		[
+			[
+				'id'                 => $cid,
+				'field'              => 'regular_price',
+				'value'              => 555.55,
+				'expectedModifiedAt' => '2000-01-01 00:00:00',
+			],
+		],
+		'inline',
+		false
+	);
+	$assert(
+		! is_wp_error( $stale_commit ) && 0 === (int) $stale_commit['updated'] && count( $stale_commit['conflicts'] ) === 1,
+		'Optimistic concurrency guard blocked stale edit and returned structured conflict diff'
+	);
+
+	// 11. v1.1 Smart CSV Import (match by SKU -> dry-run -> apply -> One-Click Rollback).
+	$sample_sku   = (string) $plugin->fields()->read_value( 'product', $cid, 'sku' );
+	$before_price = $plugin->fields()->read_value( 'product', $cid, 'regular_price' );
+	if ( '' !== $sample_sku ) {
+		$importer = new \DataDeck\Import\CsvImportEngine( $entities, $plugin->fields(), $history );
+		$csv_raw  = "SKU,Regular Price\n\"{$sample_sku}\",444.44\n";
+		$analysis = $importer->analyze( 'product', $csv_raw, 'csv' );
+		$assert( ! is_wp_error( $analysis ) && 'sku' === ( $analysis['suggestedMapping']['SKU'] ?? '' ), 'CSV import auto-mapped SKU header cleanly' );
+
+		$parsed = $importer->parse_csv( $csv_raw );
+		$dry_im = $importer->dry_run( 'product', $parsed['rows'], $analysis['suggestedMapping'], 'sku', false );
+		$assert( ! is_wp_error( $dry_im ) && 1 === (int) $dry_im['willUpdate'], 'CSV import dry-run matched 1 product by SKU' );
+
+		$app_im = $importer->apply_chunk( 'product', $parsed['rows'], $analysis['suggestedMapping'], 'sku', false );
+		$assert( ! is_wp_error( $app_im ) && 1 === (int) $app_im['updated'], 'CSV import applied price update cleanly' );
+		$assert( 444.44 === (float) $plugin->fields()->read_value( 'product', $cid, 'regular_price' ), 'CSV import persisted updated price=444.44' );
+
+		// Verify cell-level history & single-cell rollback!
+		$cell_hist = $history->list_record_changes( 'product', $cid, 'regular_price', 5 );
+		$assert( count( $cell_hist ) >= 1, 'Cell-level audit history returned recorded CSV delta' );
+
+		$single_rb = $history->rollback_change( (int) $cell_hist[0]['changeId'] );
+		$assert( ! is_wp_error( $single_rb ), 'Single-cell rollback succeeded cleanly' );
+		$assert( (float) $before_price === (float) $plugin->fields()->read_value( 'product', $cid, 'regular_price' ), 'Single-cell rollback restored exact original price' );
+	}
+}
+
+// 12. v1.1 WordPress Comments Entity Adapter.
+$comment_adapter = $entities->get( 'comment' );
+$assert( null !== $comment_adapter, 'WordPress Comments entity adapter discovered' );
+if ( $comment_adapter ) {
+	$cm_res = $comment_adapter->query( QueryRequest::from_array( 'comment', [ 'per_page' => 10 ] ) );
+	$assert( $cm_res->total >= 1, sprintf( 'Queried %d WordPress comments cleanly', $cm_res->total ) );
+}
+
 if ( ! empty( $failures ) ) {
 	echo "\nFAILED ASSERTIONS (" . count( $failures ) . "):\n - " . implode( "\n - ", $failures ) . "\n";
 	exit( 1 );

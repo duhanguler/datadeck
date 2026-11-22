@@ -218,6 +218,10 @@ final class AdminIntegration {
 			return 'user';
 		}
 
+		if ( 'edit-comments.php' === $hook_suffix ) {
+			return 'comment';
+		}
+
 		if ( 'woocommerce_page_wc-orders' === $hook_suffix ) {
 			return $this->entities->get( 'shop_order' ) ? 'shop_order' : null;
 		}

@@ -28,6 +28,7 @@ $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}datadeck_batches" );
 delete_option( 'datadeck_db_version' );
 delete_option( 'datadeck_settings' );
 delete_option( 'datadeck_views' );
+delete_option( 'datadeck_computed_fields' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->query(

@@ -42,6 +42,17 @@ final class SelectiveHydrator {
 	}
 
 	/**
+	 * Fetch ONLY the requested commentmeta keys for the given comment IDs in 1 single SQL query.
+	 *
+	 * @param array<int, int>    $comment_ids Comment IDs.
+	 * @param array<int, string> $meta_keys   Meta keys strictly required by visible columns.
+	 * @return array<int, array<string, array<int, mixed>>>
+	 */
+	public function hydrate_comment_meta( array $comment_ids, array $meta_keys ): array {
+		return $this->hydrate_meta_table( 'comment', $comment_ids, $meta_keys );
+	}
+
+	/**
 	 * Fetch terms for ONLY the visible taxonomies across all object IDs in 1 single SQL query.
 	 * Completely eliminates N+1 get_the_terms() queries regardless of row count (50 or 500 rows = 1 SQL).
 	 *
@@ -155,8 +166,16 @@ final class SelectiveHydrator {
 			return [];
 		}
 
-		$table     = 'user' === $object_type ? $wpdb->usermeta : $wpdb->postmeta;
-		$id_column = 'user' === $object_type ? 'user_id' : 'post_id';
+		$table = match ( $object_type ) {
+			'user'    => $wpdb->usermeta,
+			'comment' => $wpdb->commentmeta,
+			default   => $wpdb->postmeta,
+		};
+		$id_column = match ( $object_type ) {
+			'user'    => 'user_id',
+			'comment' => 'comment_id',
+			default   => 'post_id',
+		};
 
 		$id_placeholders  = implode( ',', array_fill( 0, count( $object_ids ), '%d' ) );
 		$key_placeholders = implode( ',', array_fill( 0, count( $meta_keys ), '%s' ) );

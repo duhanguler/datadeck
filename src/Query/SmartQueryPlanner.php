@@ -215,9 +215,9 @@ final class SmartQueryPlanner {
 					$field->meta_key
 				);
 				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$is_num          = in_array( $field->type, [ 'number', 'currency', 'integer' ], true );
-				$target_col      = $is_num ? "CAST({$alias}.meta_value AS DECIMAL(18,4))" : "{$alias}.meta_value";
-				$built           = $this->build_column_condition( $target_col, $op, $val, $val2, $is_num );
+				$is_num     = in_array( $field->type, [ 'number', 'currency', 'integer' ], true );
+				$target_col = $is_num ? "CAST({$alias}.meta_value AS DECIMAL(18,4))" : "{$alias}.meta_value";
+				$built      = $this->build_column_condition( $target_col, $op, $val, $val2, $is_num );
 				if ( $built ) {
 					$filter_clauses[] = $built['sql'];
 					array_push( $filter_params, ...$built['params'] );

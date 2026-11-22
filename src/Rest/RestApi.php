@@ -12,9 +12,11 @@ namespace DataDeck\Rest;
 use DataDeck\Bulk\BulkOperationEngine;
 use DataDeck\Bulk\CampaignScheduler;
 use DataDeck\Entities\EntityRegistry;
+use DataDeck\Fields\ComputedFieldProvider;
 use DataDeck\Fields\FieldRegistry;
 use DataDeck\Formula\ExpressionEngine;
 use DataDeck\History\HistoryService;
+use DataDeck\Import\CsvImportEngine;
 use DataDeck\Lenses\LensRegistry;
 use DataDeck\Query\KeysetStreamExporter;
 use DataDeck\Query\QueryRequest;
@@ -42,6 +44,8 @@ final class RestApi {
 		private readonly ViewSyncService $views,
 		private readonly KeysetStreamExporter $exporter,
 		private readonly ExpressionEngine $formula,
+		private readonly ComputedFieldProvider $computed_fields,
+		private readonly CsvImportEngine $importer,
 	) {}
 
 	/**
@@ -230,6 +234,79 @@ final class RestApi {
 				'permission_callback' => [ $this, 'can_read_entity' ],
 			]
 		);
+
+		// Cell-level record history & single-cell rollback.
+		register_rest_route(
+			self::NAMESPACE,
+			'/history/record/(?P<entity>[a-z0-9_\-]+)/(?P<id>\d+)',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_record_history' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/history/change/(?P<change_id>\d+)/rollback',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'rollback_change' ],
+				'permission_callback' => [ $this, 'can_access_admin' ],
+			]
+		);
+
+		// Custom virtual AST computed columns.
+		register_rest_route(
+			self::NAMESPACE,
+			'/computed-fields/(?P<entity>[a-z0-9_\-]+)',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'save_computed_field' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/computed-fields/(?P<entity>[a-z0-9_\-]+)/(?P<field_id>[a-z0-9_\-]+)',
+			[
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => [ $this, 'delete_computed_field' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
+
+		// Smart CSV / JSON Import (analyze, dry-run diff, chunked apply).
+		register_rest_route(
+			self::NAMESPACE,
+			'/import/(?P<entity>[a-z0-9_\-]+)/analyze',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'import_analyze' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/import/(?P<entity>[a-z0-9_\-]+)/dry-run',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'import_dry_run' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/import/(?P<entity>[a-z0-9_\-]+)/apply',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'import_apply' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
 	}
 
 	public function can_access_admin(): bool {
@@ -395,7 +472,8 @@ final class RestApi {
 
 		if ( 'inline' === $mode || 'paste' === $mode ) {
 			$edits = is_array( $body['edits'] ?? null ) ? $body['edits'] : [];
-			$res   = $this->bulk->commit_cell_edits( $entity, $edits, $mode );
+			$force = ! empty( $body['force'] );
+			$res   = $this->bulk->commit_cell_edits( $entity, $edits, $mode, $force );
 			return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
 		}
 
@@ -568,7 +646,7 @@ final class RestApi {
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 */
-	public function export_records( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+	public function export_records( WP_REST_Request $request ): WP_Error {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		if ( ! $adapter ) {
@@ -589,5 +667,150 @@ final class RestApi {
 		$format = sanitize_key( (string) ( $request->get_param( 'format' ) ?? 'csv' ) );
 		$this->exporter->stream( $adapter, $query_req, $ordered, $format );
 		exit;
+	}
+
+	/**
+	 * Cell-level chronological history for a single record.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function get_record_history( WP_REST_Request $request ): WP_REST_Response {
+		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$id     = (int) $request->get_param( 'id' );
+		$field  = sanitize_key( (string) ( $request->get_param( 'field' ) ?? '' ) );
+		$limit  = (int) ( $request->get_param( 'limit' ) ?? 50 );
+
+		return new WP_REST_Response(
+			[
+				'changes' => $this->history->list_record_changes( $entity, $id, $field, $limit ),
+			],
+			200
+		);
+	}
+
+	/**
+	 * Restore a single historical cell change.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function rollback_change( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$change_id = (int) $request->get_param( 'change_id' );
+		$res       = $this->history->rollback_change( $change_id );
+		return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
+	}
+
+	/**
+	 * Create or update a custom computed formula column.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function save_computed_field( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$body   = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid JSON body.', 'datadeck' ), [ 'status' => 400 ] );
+		}
+
+		$saved = $this->computed_fields->save_custom( $entity, $body );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+
+		$this->fields->clear_cache();
+		$field_map = $this->fields->get_fields_for_entity( $entity );
+		$fields    = array_map( static fn( $f ): array => $f->to_array(), array_values( $field_map ) );
+
+		return new WP_REST_Response(
+			[
+				'computedField' => $saved,
+				'fields'        => $fields,
+			],
+			201
+		);
+	}
+
+	/**
+	 * Delete a custom computed formula column.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function delete_computed_field( WP_REST_Request $request ): WP_REST_Response {
+		$entity   = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$field_id = sanitize_key( (string) $request->get_param( 'field_id' ) );
+		$deleted  = $this->computed_fields->delete_custom( $entity, $field_id );
+		$this->fields->clear_cache();
+
+		$field_map = $this->fields->get_fields_for_entity( $entity );
+		$fields    = array_map( static fn( $f ): array => $f->to_array(), array_values( $field_map ) );
+
+		return new WP_REST_Response(
+			[
+				'deleted' => $deleted,
+				'fields'  => $fields,
+			],
+			200
+		);
+	}
+
+	/**
+	 * Analyze raw CSV/JSON import payload and return suggested column mappings.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function import_analyze( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$body   = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid JSON body.', 'datadeck' ), [ 'status' => 400 ] );
+		}
+
+		$content = (string) ( $body['content'] ?? '' );
+		$format  = sanitize_key( (string) ( $body['format'] ?? 'csv' ) );
+		$res     = $this->importer->analyze( $entity, $content, $format );
+
+		return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
+	}
+
+	/**
+	 * Preview exact row-by-row diffs before applying a CSV/JSON import.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function import_dry_run( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$body   = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid JSON body.', 'datadeck' ), [ 'status' => 400 ] );
+		}
+
+		$rows           = is_array( $body['rows'] ?? null ) ? $body['rows'] : [];
+		$mapping        = is_array( $body['mapping'] ?? null ) ? $body['mapping'] : [];
+		$match_by       = sanitize_key( (string) ( $body['matchBy'] ?? 'id' ) );
+		$create_missing = ! empty( $body['createMissing'] );
+
+		$res = $this->importer->dry_run( $entity, $rows, $mapping, $match_by, $create_missing );
+		return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
+	}
+
+	/**
+	 * Apply one chunk of CSV/JSON import rows with full HistoryService delta rollback tracking.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function import_apply( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$body   = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			return new WP_Error( 'datadeck_bad_payload', __( 'Invalid JSON body.', 'datadeck' ), [ 'status' => 400 ] );
+		}
+
+		$rows           = is_array( $body['rows'] ?? null ) ? $body['rows'] : [];
+		$mapping        = is_array( $body['mapping'] ?? null ) ? $body['mapping'] : [];
+		$match_by       = sanitize_key( (string) ( $body['matchBy'] ?? 'id' ) );
+		$create_missing = ! empty( $body['createMissing'] );
+		$batch_uuid     = ! empty( $body['batchUuid'] ) ? sanitize_text_field( (string) $body['batchUuid'] ) : null;
+
+		$res = $this->importer->apply_chunk( $entity, $rows, $mapping, $match_by, $create_missing, $batch_uuid );
+		return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
 	}
 }

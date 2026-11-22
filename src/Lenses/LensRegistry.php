@@ -67,6 +67,35 @@ final class LensRegistry {
 			];
 		}
 
+		if ( 'comment' === $entity_slug ) {
+			return [
+				[
+					'id'          => 'all',
+					'label'       => __( 'All Comments', 'datadeck' ),
+					'description' => __( 'All comments and product reviews.', 'datadeck' ),
+					'columns'     => [],
+				],
+				[
+					'id'          => 'comment_pending',
+					'label'       => __( 'Pending Moderation', 'datadeck' ),
+					'description' => __( 'Comments awaiting approval.', 'datadeck' ),
+					'columns'     => [ 'content', 'id', 'author_name', 'author_email', 'status', 'post_title', 'date' ],
+				],
+				[
+					'id'          => 'comment_reviews',
+					'label'       => __( 'Product Reviews', 'datadeck' ),
+					'description' => __( 'WooCommerce customer ratings and reviews.', 'datadeck' ),
+					'columns'     => [ 'content', 'id', 'author_name', 'rating', 'status', 'post_title', 'date' ],
+				],
+				[
+					'id'          => 'comment_spam',
+					'label'       => __( 'Spam Queue', 'datadeck' ),
+					'description' => __( 'Comments flagged as spam.', 'datadeck' ),
+					'columns'     => [ 'content', 'id', 'author_name', 'author_email', 'status', 'date' ],
+				],
+			];
+		}
+
 		if ( in_array( $entity_slug, [ 'user', 'shop_order' ], true ) ) {
 			return [
 				[

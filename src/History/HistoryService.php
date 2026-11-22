@@ -68,7 +68,7 @@ final class HistoryService {
 			}
 		}
 
-		$uuid = $batch_uuid && '' !== $batch_uuid ? sanitize_text_field( $batch_uuid ) : wp_generate_uuid4();
+		$uuid = ( null !== $batch_uuid && '' !== $batch_uuid ) ? sanitize_text_field( $batch_uuid ) : wp_generate_uuid4();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->insert(
@@ -351,6 +351,145 @@ final class HistoryService {
 			'restored'     => count( $restored_objects ),
 			'errors'       => $errors,
 			'rollbackUuid' => $rollback_batch['uuid'],
+		];
+	}
+
+	/**
+	 * List chronological cell-level change history for a single record (optionally filtered to one field).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function list_record_changes(
+		string $entity_type,
+		int $object_id,
+		string $field_key = '',
+		int $limit = 50
+	): array {
+		global $wpdb;
+		$batches = Schema::batches_table();
+		$changes = Schema::changes_table();
+		$limit   = min( 100, max( 1, $limit ) );
+
+		if ( '' !== $field_key ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT c.id, c.object_id, c.field_key, c.old_value, c.new_value, b.batch_uuid, b.operation_type, b.summary, b.user_id, b.created_at
+					FROM %i AS c
+					INNER JOIN %i AS b ON c.batch_id = b.id
+					WHERE b.entity_type = %s AND c.object_id = %d AND c.field_key = %s
+					ORDER BY c.id DESC
+					LIMIT %d',
+					$changes,
+					$batches,
+					sanitize_key( $entity_type ),
+					$object_id,
+					$field_key,
+					$limit
+				)
+			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT c.id, c.object_id, c.field_key, c.old_value, c.new_value, b.batch_uuid, b.operation_type, b.summary, b.user_id, b.created_at
+					FROM %i AS c
+					INNER JOIN %i AS b ON c.batch_id = b.id
+					WHERE b.entity_type = %s AND c.object_id = %d
+					ORDER BY c.id DESC
+					LIMIT %d',
+					$changes,
+					$batches,
+					sanitize_key( $entity_type ),
+					$object_id,
+					$limit
+				)
+			);
+		}
+
+		$result = [];
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $r ) {
+				$user     = $r->user_id ? get_userdata( (int) $r->user_id ) : false;
+				$result[] = [
+					'changeId'      => (int) $r->id,
+					'objectId'      => (int) $r->object_id,
+					'field'         => (string) $r->field_key,
+					'oldValue'      => json_decode( (string) $r->old_value, true ),
+					'newValue'      => json_decode( (string) $r->new_value, true ),
+					'batchUuid'     => (string) $r->batch_uuid,
+					'operationType' => (string) $r->operation_type,
+					'summary'       => (string) $r->summary,
+					'userName'      => $user ? (string) $user->display_name : __( 'System', 'datadeck' ),
+					'createdAt'     => (string) $r->created_at,
+				];
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Restore a single historical cell change by its numeric change row ID.
+	 *
+	 * @return array{objectId: int, field: string, restoredValue: mixed, rollbackUuid: string}|WP_Error
+	 */
+	public function rollback_change( int $change_id ): array|WP_Error {
+		global $wpdb;
+		$batches = Schema::batches_table();
+		$changes = Schema::changes_table();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT c.id, c.object_id, c.field_key, c.old_value, b.entity_type
+				FROM %i AS c
+				INNER JOIN %i AS b ON c.batch_id = b.id
+				WHERE c.id = %d',
+				$changes,
+				$batches,
+				$change_id
+			)
+		);
+
+		if ( ! $row ) {
+			return new WP_Error( 'datadeck_change_not_found', __( 'History entry not found.', 'datadeck' ), [ 'status' => 404 ] );
+		}
+
+		$entity_slug = (string) $row->entity_type;
+		$object_id   = (int) $row->object_id;
+		$field_key   = (string) $row->field_key;
+		$old_val     = json_decode( (string) $row->old_value, true );
+
+		$adapter = $this->entities->get( $entity_slug );
+		if ( ! $adapter || ! $adapter->can_edit( $object_id ) ) {
+			return new WP_Error( 'datadeck_forbidden', __( 'Permission denied to restore this record.', 'datadeck' ), [ 'status' => 403 ] );
+		}
+
+		$current_val = $this->fields->read_value( $entity_slug, $object_id, $field_key );
+		$write       = $this->fields->write_value( $entity_slug, $object_id, $field_key, $old_val );
+		if ( is_wp_error( $write ) ) {
+			return $write;
+		}
+
+		$rollback_batch = $this->open_batch(
+			$entity_slug,
+			'rollback',
+			sprintf(
+				/* translators: 1: field key, 2: record ID */
+				__( 'Cell restore: %1$s on #%2$d', 'datadeck' ),
+				$field_key,
+				$object_id
+			)
+		);
+		$this->record_change( $rollback_batch['id'], $object_id, $field_key, $current_val, $old_val );
+		$this->finalize_batch_count( $rollback_batch['id'] );
+
+		return [
+			'objectId'      => $object_id,
+			'field'         => $field_key,
+			'restoredValue' => $old_val,
+			'rollbackUuid'  => $rollback_batch['uuid'],
 		];
 	}
 

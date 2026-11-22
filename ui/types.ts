@@ -126,7 +126,67 @@ export interface RecordRow {
 	_isVariation?: boolean;
 	_parentId?: number;
 	_varCount?: number;
+	_modifiedAt?: string;
 	[fieldId: string]: unknown;
+}
+
+export interface ConflictItem {
+	id: number;
+	field: string;
+	expectedModifiedAt: string;
+	currentModifiedAt: string;
+	serverValue: unknown;
+	attemptedValue: unknown;
+}
+
+export interface RecordHistoryEntry {
+	changeId: number;
+	objectId: number;
+	field: string;
+	oldValue: unknown;
+	newValue: unknown;
+	batchUuid: string;
+	operationType: string;
+	summary: string;
+	userName: string;
+	createdAt: string;
+}
+
+export interface CsvAnalyzeResponse {
+	headers: string[];
+	delimiter: string;
+	totalRows: number;
+	sampleRows: Array<Record<string, unknown>>;
+	suggestedMapping: Record<string, string>;
+	matchCandidates: SelectOption[];
+	canCreate: boolean;
+}
+
+export interface CsvDryRunPreviewRow {
+	rowNumber: number;
+	matchValue: string;
+	recordId: number | null;
+	action: 'update' | 'create' | 'skip' | 'error';
+	changes: Array<{ field: string; label: string; oldValue: unknown; newValue: unknown }>;
+	error: string | null;
+}
+
+export interface CsvDryRunResponse {
+	totalRows: number;
+	willUpdate: number;
+	willCreate: number;
+	willSkip: number;
+	errorsCount: number;
+	previews: CsvDryRunPreviewRow[];
+}
+
+export interface CsvApplyResponse {
+	batchUuid: string;
+	processed: number;
+	updated: number;
+	created: number;
+	skipped: number;
+	errors: Array<{ row: number; id?: number; field?: string; message: string }>;
 }
 
 export interface QueryPerf {

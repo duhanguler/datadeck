@@ -138,8 +138,9 @@ final class FieldRegistry {
 	 * @return array<int, string>
 	 */
 	public function collect_required_meta_keys( string $entity_slug, array $field_ids ): array {
-		$grouped = $this->group_fields_by_provider( $entity_slug, $field_ids );
-		$keys    = [];
+		$expanded = $this->expand_computed_dependencies( $entity_slug, $field_ids );
+		$grouped  = $this->group_fields_by_provider( $entity_slug, $expanded );
+		$keys     = [];
 
 		foreach ( $grouped as $provider_id => $fields ) {
 			$provider = $this->providers[ $provider_id ] ?? null;
@@ -159,10 +160,11 @@ final class FieldRegistry {
 	 * @return array<int, string>
 	 */
 	public function collect_required_taxonomies( string $entity_slug, array $field_ids ): array {
-		$all  = $this->get_fields_for_entity( $entity_slug );
-		$pool = [];
+		$all      = $this->get_fields_for_entity( $entity_slug );
+		$expanded = $this->expand_computed_dependencies( $entity_slug, $field_ids );
+		$pool     = [];
 
-		foreach ( $field_ids as $fid ) {
+		foreach ( $expanded as $fid ) {
 			$field = $all[ $fid ] ?? null;
 			if ( $field && 'taxonomy' === $field->type && '' !== $field->taxonomy ) {
 				$pool[] = $field->taxonomy;
@@ -174,6 +176,7 @@ final class FieldRegistry {
 
 	/**
 	 * Hydrate projected fields across all owning providers.
+	 * Computed virtual columns always hydrate last after their dependency fields.
 	 *
 	 * @param string                                      $entity_slug Entity slug.
 	 * @param array<int, int>                             $ids         Record IDs.
@@ -188,7 +191,10 @@ final class FieldRegistry {
 		array &$rows,
 		array $meta_cache
 	): void {
-		$grouped = $this->group_fields_by_provider( $entity_slug, $field_ids );
+		$expanded = $this->expand_computed_dependencies( $entity_slug, $field_ids );
+		$grouped  = $this->group_fields_by_provider( $entity_slug, $expanded );
+		$computed = $grouped['computed'] ?? null;
+		unset( $grouped['computed'] );
 
 		foreach ( $grouped as $provider_id => $fields ) {
 			$provider = $this->providers[ $provider_id ] ?? null;
@@ -196,6 +202,47 @@ final class FieldRegistry {
 				$provider->hydrate( $entity_slug, $ids, $fields, $rows, $meta_cache );
 			}
 		}
+
+		if ( null !== $computed && isset( $this->providers['computed'] ) ) {
+			$this->providers['computed']->hydrate( $entity_slug, $ids, $computed, $rows, $meta_cache );
+		}
+	}
+
+	/**
+	 * Clear cached field definitions (e.g. after creating/deleting custom computed columns).
+	 */
+	public function clear_cache(): void {
+		$this->field_cache = [];
+	}
+
+	/**
+	 * Include underlying dependency fields required by any projected computed columns.
+	 *
+	 * @param string             $entity_slug Entity slug.
+	 * @param array<int, string> $field_ids   Projected field IDs.
+	 * @return array<int, string>
+	 */
+	private function expand_computed_dependencies( string $entity_slug, array $field_ids ): array {
+		$all      = $this->get_fields_for_entity( $entity_slug );
+		$expanded = $field_ids;
+
+		foreach ( $field_ids as $fid ) {
+			$field = $all[ $fid ] ?? null;
+			if ( ! $field || empty( $field->extra['computed'] ) ) {
+				continue;
+			}
+			$deps = $field->extra['dependencies'] ?? [];
+			if ( is_array( $deps ) ) {
+				foreach ( $deps as $dep ) {
+					$dep_id = (string) $dep;
+					if ( isset( $all[ $dep_id ] ) && ! in_array( $dep_id, $expanded, true ) ) {
+						$expanded[] = $dep_id;
+					}
+				}
+			}
+		}
+
+		return $expanded;
 	}
 
 	/**

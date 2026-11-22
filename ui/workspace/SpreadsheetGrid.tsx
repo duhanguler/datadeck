@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from '@wordpress/el
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { __ } from '@wordpress/i18n';
 import { InlineCell } from '../cells/InlineCell';
+import { computeNumericAggregation, generateFillSeries } from '../utils/series';
+import type { ContextMenuState } from './GridContextMenu';
 import type {
 	CellCoord,
 	CellRange,
@@ -27,6 +29,7 @@ interface SpreadsheetGridProps {
 	stagedEdits: Record<string, StagedEdit>;
 	onSort: ( fieldId: string ) => void;
 	onResizeColumn: ( fieldId: string, width: number ) => void;
+	onReorderColumns: ( fromId: string, toId: string ) => void;
 	onToggleSelectRow: ( id: number ) => void;
 	onToggleSelectAll: ( ids: number[] ) => void;
 	onFocusCell: ( cell: CellCoord | null ) => void;
@@ -36,6 +39,7 @@ interface SpreadsheetGridProps {
 	onToggleVariations: ( parentId: number ) => void;
 	onInspectRow: ( record: RecordRow ) => void;
 	onDuplicateRow: ( id: number ) => void;
+	onOpenContextMenu: ( menu: ContextMenuState ) => void;
 }
 
 const ROW_HEIGHTS: Record<DensityMode, number> = {
@@ -83,6 +87,7 @@ export function SpreadsheetGrid( {
 	stagedEdits,
 	onSort,
 	onResizeColumn,
+	onReorderColumns,
 	onToggleSelectRow,
 	onToggleSelectAll,
 	onFocusCell,
@@ -92,11 +97,20 @@ export function SpreadsheetGrid( {
 	onToggleVariations,
 	onInspectRow,
 	onDuplicateRow,
+	onOpenContextMenu,
 }: SpreadsheetGridProps ) {
 	const scrollRef = useRef<HTMLDivElement>( null );
 	const [ scrolledX, setScrolledX ] = useState( false );
 	const [ initialChar, setInitialChar ] = useState<string | undefined>( undefined );
 	const [ resizingCol, setResizingCol ] = useState<string | null>( null );
+	const [ dragColId, setDragColId ] = useState<string | null>( null );
+	const [ dropTargetColId, setDropTargetColId ] = useState<string | null>( null );
+	const [ fillDrag, setFillDrag ] = useState<{
+		colIndex: number;
+		seedStartRow: number;
+		seedEndRow: number;
+		targetEndRow: number;
+	} | null>( null );
 
 	// Flatten parent records with any expanded WooCommerce variation sub-rows.
 	const flatRows = useMemo( () => {
@@ -348,7 +362,117 @@ export function SpreadsheetGrid( {
 		}
 	};
 
+	// Commit Drag-to-Fill Handle series on mouseup.
+	useEffect( () => {
+		if ( ! fillDrag ) {
+			return;
+		}
+		const onMouseUp = () => {
+			const col = columns[ fillDrag.colIndex ];
+			if ( col && col.editable && fillDrag.targetEndRow > fillDrag.seedEndRow ) {
+				const seeds: unknown[] = [];
+				for ( let r = fillDrag.seedStartRow; r <= fillDrag.seedEndRow; r++ ) {
+					const row = flatRows[ r ];
+					if ( row ) {
+						const k = `${ row.id }:${ col.id }`;
+						seeds.push( stagedEdits[ k ] !== undefined ? stagedEdits[ k ].newValue : row[ col.id ] );
+					}
+				}
+				const count = fillDrag.targetEndRow - fillDrag.seedEndRow;
+				const generated = generateFillSeries( seeds, count, col.type );
+				const edits: StagedEdit[] = [];
+				for ( let i = 0; i < count; i++ ) {
+					const targetRow = flatRows[ fillDrag.seedEndRow + 1 + i ];
+					if ( targetRow && targetRow._canEdit !== false ) {
+						edits.push( {
+							recordId: targetRow.id,
+							fieldId: col.id,
+							oldValue: targetRow[ col.id ],
+							newValue: generated[ i ],
+						} );
+					}
+				}
+				if ( edits.length > 0 ) {
+					onStageOrSaveEdits( edits, 'inline' );
+					onSelectRange( {
+						startRow: fillDrag.seedStartRow,
+						endRow: fillDrag.targetEndRow,
+						colIndex: fillDrag.colIndex,
+						fieldId: col.id,
+					} );
+				}
+			}
+			setFillDrag( null );
+		};
+		window.addEventListener( 'mouseup', onMouseUp );
+		return () => window.removeEventListener( 'mouseup', onMouseUp );
+	}, [ fillDrag, columns, flatRows, stagedEdits, onStageOrSaveEdits, onSelectRange ] );
+
+	// Live client-side aggregation summary (zero extra SQL).
+	const aggSummary = useMemo( () => {
+		if ( flatRows.length === 0 ) {
+			return null;
+		}
+		const isNumericCol = ( f?: FieldDefinition ) =>
+			Boolean( f && [ 'number', 'currency', 'integer' ].includes( f.type ) && f.id !== 'id' );
+
+		let targetCol: FieldDefinition | undefined;
+		let targetRows = flatRows;
+		let scopeLabel: string = __( 'Visible page', 'datadeck' );
+
+		if ( selectedRange ) {
+			const col = columns[ selectedRange.colIndex ];
+			if ( isNumericCol( col ) ) {
+				targetCol = col;
+				targetRows = flatRows.slice( selectedRange.startRow, selectedRange.endRow + 1 );
+				scopeLabel = `${ __( 'Selected range', 'datadeck' ) } (${ targetRows.length })`;
+			}
+		}
+
+		if ( ! targetCol && focusedCell ) {
+			const col = columns[ focusedCell.colIndex ];
+			if ( isNumericCol( col ) ) {
+				targetCol = col;
+			}
+		}
+
+		if ( ! targetCol ) {
+			targetCol = columns.find( ( c ) => isNumericCol( c ) );
+		}
+
+		if ( ! targetCol ) {
+			return null;
+		}
+
+		const values = targetRows.map( ( row ) => {
+			const k = `${ row.id }:${ targetCol!.id }`;
+			return stagedEdits[ k ] !== undefined ? stagedEdits[ k ].newValue : row[ targetCol!.id ];
+		} );
+		const stats = computeNumericAggregation( values );
+		const currency = typeof targetCol.extra?.currency === 'string' ? targetCol.extra.currency : '';
+		const suffix = typeof targetCol.extra?.suffix === 'string' ? targetCol.extra.suffix : '';
+
+		return {
+			label: targetCol.label,
+			scopeLabel,
+			currency,
+			suffix,
+			stats,
+		};
+	}, [ flatRows, columns, selectedRange, focusedCell, stagedEdits ] );
+
+	const fmtAgg = ( n: number, currency: string, suffix: string ) => {
+		if ( currency ) {
+			return `${ currency }${ n.toLocaleString( undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 } ) }`;
+		}
+		if ( suffix ) {
+			return `${ n.toLocaleString() }${ suffix }`;
+		}
+		return n.toLocaleString();
+	};
+
 	return (
+		<div className="rc-grid-wrapper">
 		<div
 			ref={ scrollRef }
 			className={ `rc-grid-shell ${ loading ? 'is-fetching' : '' }` }
@@ -386,15 +510,50 @@ export function SpreadsheetGrid( {
 						const w = columnWidths[ col.id ] || col.width || 150;
 						const isSorted = sortField === col.id;
 						const isStickyCol = colIdx === stickyColIndex;
+						const canDrag = ! isStickyCol;
 						return (
 							<div
 								key={ col.id }
+								draggable={ canDrag }
+								onDragStart={ ( e ) => {
+									if ( ! canDrag ) {
+										return;
+									}
+									setDragColId( col.id );
+									e.dataTransfer.effectAllowed = 'move';
+									e.dataTransfer.setData( 'text/plain', col.id );
+								} }
+								onDragOver={ ( e ) => {
+									if ( ! dragColId || dragColId === col.id || isStickyCol ) {
+										return;
+									}
+									e.preventDefault();
+									setDropTargetColId( col.id );
+								} }
+								onDragLeave={ () => {
+									if ( dropTargetColId === col.id ) {
+										setDropTargetColId( null );
+									}
+								} }
+								onDrop={ ( e ) => {
+									e.preventDefault();
+									if ( dragColId && dragColId !== col.id && ! isStickyCol ) {
+										onReorderColumns( dragColId, col.id );
+									}
+									setDragColId( null );
+									setDropTargetColId( null );
+								} }
+								onDragEnd={ () => {
+									setDragColId( null );
+									setDropTargetColId( null );
+								} }
 								className={ [
 									'rc-th',
 									col.sortable ? 'rc-th--sortable' : '',
 									col.align === 'right' ? 'rc-th--right' : '',
 									col.align === 'center' ? 'rc-th--center' : '',
 									isStickyCol ? 'rc-th--sticky-primary' : '',
+									dropTargetColId === col.id ? 'is-drop-target' : '',
 								]
 									.filter( Boolean )
 									.join( ' ' ) }
@@ -403,6 +562,9 @@ export function SpreadsheetGrid( {
 								onClick={ () => col.sortable && onSort( col.id ) }
 							>
 								<span className="rc-th-label">{ col.label }</span>
+								{ Boolean( col.extra?.computed ) && (
+									<span className="rc-fx-tag" title={ String( col.extra?.formula || '' ) }>fx</span>
+								) }
 								{ isSorted && (
 									<span className="rc-sort-arrow" aria-hidden="true">
 										{ sortDirection === 'asc' ? '▲' : '▼' }
@@ -478,6 +640,12 @@ export function SpreadsheetGrid( {
 											vRow.index >= selectedRange.startRow &&
 											vRow.index <= selectedRange.endRow;
 
+										const isFillTarget =
+											fillDrag !== null &&
+											fillDrag.colIndex === colIdx &&
+											vRow.index > fillDrag.seedEndRow &&
+											vRow.index <= fillDrag.targetEndRow;
+
 										return (
 											<InlineCell
 												key={ col.id }
@@ -491,8 +659,41 @@ export function SpreadsheetGrid( {
 												isFocused={ isFocused }
 												isEditing={ isEditing }
 												isInRange={ isInRange }
+												isFillTarget={ isFillTarget }
 												initialChar={ isEditing ? initialChar : undefined }
 												isExpandedParent={ isExpandedParent }
+												onStartFillDrag={ () => {
+													const seedStart =
+														selectedRange && selectedRange.colIndex === colIdx
+															? selectedRange.startRow
+															: vRow.index;
+													const seedEnd =
+														selectedRange && selectedRange.colIndex === colIdx
+															? selectedRange.endRow
+															: vRow.index;
+													setFillDrag( {
+														colIndex: colIdx,
+														seedStartRow: seedStart,
+														seedEndRow: seedEnd,
+														targetEndRow: seedEnd,
+													} );
+												} }
+												onFillDragEnter={ () => {
+													if ( fillDrag && fillDrag.colIndex === colIdx && vRow.index >= fillDrag.seedEndRow ) {
+														setFillDrag( ( prev ) =>
+															prev ? { ...prev, targetEndRow: vRow.index } : null
+														);
+													}
+												} }
+												onContextMenuCell={ ( e, currentVal ) => {
+													onOpenContextMenu( {
+														x: e.clientX,
+														y: e.clientY,
+														record,
+														field: col,
+														value: currentVal,
+													} );
+												} }
 												onFocus={ ( shiftKey ) => {
 													if ( editingCell && ! isEditing ) {
 														onEditCell( null );
@@ -563,6 +764,32 @@ export function SpreadsheetGrid( {
 					</div>
 				) }
 			</div>
+		</div>
+
+		{ aggSummary && aggSummary.stats.numericCount > 0 && (
+			<div className="rc-agg-bar" aria-label={ __( 'Live column summary', 'datadeck' ) }>
+				<span className="rc-agg-scope">
+					<strong>{ aggSummary.label }</strong> · { aggSummary.scopeLabel }
+				</span>
+				<div className="rc-agg-metrics">
+					<span>
+						<em>SUM</em> { fmtAgg( aggSummary.stats.sum, aggSummary.currency, aggSummary.suffix ) }
+					</span>
+					<span>
+						<em>AVG</em> { fmtAgg( aggSummary.stats.avg, aggSummary.currency, aggSummary.suffix ) }
+					</span>
+					<span>
+						<em>MIN</em> { fmtAgg( aggSummary.stats.min, aggSummary.currency, aggSummary.suffix ) }
+					</span>
+					<span>
+						<em>MAX</em> { fmtAgg( aggSummary.stats.max, aggSummary.currency, aggSummary.suffix ) }
+					</span>
+					<span>
+						<em>COUNT</em> { aggSummary.stats.numericCount }/{ aggSummary.stats.count }
+					</span>
+				</div>
+			</div>
+		) }
 		</div>
 	);
 }

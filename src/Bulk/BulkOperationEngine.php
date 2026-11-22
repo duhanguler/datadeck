@@ -36,13 +36,20 @@ final class BulkOperationEngine {
 
 	/**
 	 * Commit a list of explicit cell edits (inline staged edits or Excel paste).
+	 * Supports optimistic concurrency checking via optional expectedModifiedAt per edit.
 	 *
-	 * @param string                                                    $entity_slug    Entity slug.
-	 * @param array<int, array{id: int, field: string, value: mixed}>   $edits          Cell mutations.
-	 * @param string                                                    $operation_type 'inline' or 'paste'.
+	 * @param string                                                                           $entity_slug    Entity slug.
+	 * @param array<int, array{id: int, field: string, value: mixed, expectedModifiedAt?: string}> $edits      Cell mutations.
+	 * @param string                                                                           $operation_type 'inline' or 'paste'.
+	 * @param bool                                                                             $force          Skip optimistic lock check when user resolves conflict.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public function commit_cell_edits( string $entity_slug, array $edits, string $operation_type = 'inline' ): array|WP_Error {
+	public function commit_cell_edits(
+		string $entity_slug,
+		array $edits,
+		string $operation_type = 'inline',
+		bool $force = false
+	): array|WP_Error {
 		$adapter = $this->entities->get( $entity_slug );
 		if ( ! $adapter ) {
 			return new WP_Error( 'datadeck_unknown_entity', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
@@ -50,24 +57,78 @@ final class BulkOperationEngine {
 
 		if ( empty( $edits ) ) {
 			return [
-				'updated'   => 0,
-				'errors'    => [],
-				'batchUuid' => '',
+				'updated'     => 0,
+				'errors'      => [],
+				'conflicts'   => [],
+				'modifiedMap' => [],
+				'batchUuid'   => '',
+			];
+		}
+
+		// Optimistic Concurrency Guard: detect stale records modified by another user/process.
+		$conflicts        = [];
+		$conflicted_ids   = [];
+		$initial_modified = [];
+
+		if ( ! $force ) {
+			foreach ( $edits as $edit ) {
+				$oid      = (int) ( $edit['id'] ?? 0 );
+				$field_id = (string) ( $edit['field'] ?? '' );
+				$expected = isset( $edit['expectedModifiedAt'] ) ? trim( (string) $edit['expectedModifiedAt'] ) : '';
+
+				if ( $oid <= 0 || '' === $field_id || '' === $expected ) {
+					continue;
+				}
+
+				if ( ! array_key_exists( $oid, $initial_modified ) ) {
+					$initial_modified[ $oid ] = $this->read_record_modified_gmt( $entity_slug, $oid );
+				}
+
+				$current_mod = $initial_modified[ $oid ];
+				if ( '' !== $current_mod && $current_mod !== $expected ) {
+					$conflicted_ids[ $oid ] = true;
+					$conflicts[]            = [
+						'id'                 => $oid,
+						'field'              => $field_id,
+						'expectedModifiedAt' => $expected,
+						'currentModifiedAt'  => $current_mod,
+						'serverValue'        => $this->fields->read_value( $entity_slug, $oid, $field_id ),
+						'attemptedValue'     => $edit['value'] ?? null,
+					];
+				}
+			}
+		}
+
+		$applicable = array_values(
+			array_filter(
+				$edits,
+				static fn( array $e ): bool => ! isset( $conflicted_ids[ (int) ( $e['id'] ?? 0 ) ] )
+			)
+		);
+
+		if ( empty( $applicable ) ) {
+			return [
+				'updated'     => 0,
+				'errors'      => [],
+				'conflicts'   => $conflicts,
+				'modifiedMap' => [],
+				'batchUuid'   => '',
 			];
 		}
 
 		$summary = sprintf(
 			/* translators: 1: edit count, 2: entity label */
 			__( '%1$d cell edits on %2$s', 'datadeck' ),
-			count( $edits ),
+			count( $applicable ),
 			$adapter->get_plural_label()
 		);
 
-		$batch   = $this->history->open_batch( $entity_slug, $operation_type, $summary );
-		$updated = 0;
-		$errors  = [];
+		$batch       = $this->history->open_batch( $entity_slug, $operation_type, $summary );
+		$updated     = 0;
+		$errors      = [];
+		$touched_ids = [];
 
-		foreach ( $edits as $edit ) {
+		foreach ( $applicable as $edit ) {
 			$oid       = (int) ( $edit['id'] ?? 0 );
 			$field_id  = (string) ( $edit['field'] ?? '' );
 			$new_value = $edit['value'] ?? null;
@@ -98,16 +159,39 @@ final class BulkOperationEngine {
 			}
 
 			$this->history->record_change( $batch['id'], $oid, $field_id, $old_value, $new_value );
+			$touched_ids[ $oid ] = true;
 			++$updated;
 		}
 
 		$this->history->finalize_batch_count( $batch['id'] );
 
+		$modified_map = [];
+		foreach ( array_keys( $touched_ids ) as $tid ) {
+			clean_post_cache( (int) $tid );
+			$mod = $this->read_record_modified_gmt( $entity_slug, (int) $tid );
+			if ( '' !== $mod ) {
+				$modified_map[ (string) $tid ] = $mod;
+			}
+		}
+
 		return [
-			'updated'   => $updated,
-			'errors'    => $errors,
-			'batchUuid' => $batch['uuid'],
+			'updated'     => $updated,
+			'errors'      => $errors,
+			'conflicts'   => $conflicts,
+			'modifiedMap' => $modified_map,
+			'batchUuid'   => $batch['uuid'],
 		];
+	}
+
+	/**
+	 * Read the latest UTC modified timestamp for optimistic locking.
+	 */
+	private function read_record_modified_gmt( string $entity_slug, int $record_id ): string {
+		if ( in_array( $entity_slug, [ 'user', 'shop_order', 'comment' ], true ) ) {
+			return '';
+		}
+		$post = get_post( $record_id );
+		return $post ? (string) $post->post_modified_gmt : '';
 	}
 
 	/**

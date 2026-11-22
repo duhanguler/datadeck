@@ -110,6 +110,61 @@ final class ExpressionEngine {
 	}
 
 	/**
+	 * Extract unique variable/field identifiers referenced inside a formula expression.
+	 *
+	 * @param string $expression Raw formula expression.
+	 * @return array<int, string>
+	 */
+	public function extract_variables( string $expression ): array {
+		try {
+			$ast = $this->compile( $expression );
+		} catch ( InvalidArgumentException ) {
+			return [];
+		}
+
+		$vars = [];
+		$this->collect_ast_identifiers( $ast, $vars );
+		return array_values( array_unique( $vars ) );
+	}
+
+	/**
+	 * Recursively walk an AST node and collect referenced identifier names.
+	 *
+	 * @param array<string, mixed> $ast  AST node.
+	 * @param array<int, string>   $vars Accumulator.
+	 */
+	private function collect_ast_identifiers( array $ast, array &$vars ): void {
+		$kind = (string) ( $ast['kind'] ?? '' );
+		if ( 'ident' === $kind ) {
+			$name = (string) ( $ast['name'] ?? '' );
+			if ( '' !== $name && ! in_array( strtolower( $name ), [ 'true', 'false', 'null' ], true ) ) {
+				$vars[] = $name;
+			}
+			return;
+		}
+		if ( 'unary' === $kind && is_array( $ast['expr'] ?? null ) ) {
+			$this->collect_ast_identifiers( $ast['expr'], $vars );
+			return;
+		}
+		if ( 'binary' === $kind ) {
+			if ( is_array( $ast['left'] ?? null ) ) {
+				$this->collect_ast_identifiers( $ast['left'], $vars );
+			}
+			if ( is_array( $ast['right'] ?? null ) ) {
+				$this->collect_ast_identifiers( $ast['right'], $vars );
+			}
+			return;
+		}
+		if ( 'call' === $kind && is_array( $ast['args'] ?? null ) ) {
+			foreach ( $ast['args'] as $arg ) {
+				if ( is_array( $arg ) ) {
+					$this->collect_ast_identifiers( $arg, $vars );
+				}
+			}
+		}
+	}
+
+	/**
 	 * Interpolate dynamic template tokens like "{title} - {sku} | {site_name}".
 	 *
 	 * @param string               $template Template string.
@@ -489,7 +544,8 @@ final class ExpressionEngine {
 			if ( Token::LPAREN === $this->peek()->type ) {
 				$this->advance();
 				$args = [];
-				if ( Token::RPAREN !== $this->peek()->type ) {
+				$next = $this->peek();
+				if ( Token::RPAREN !== $next->type ) {
 					do {
 						$args[] = $this->parse_or();
 					} while ( $this->match_type( Token::COMMA ) );

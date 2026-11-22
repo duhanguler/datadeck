@@ -45,7 +45,7 @@ final class ViewSyncService {
 			$filtered[] = $view;
 		}
 
-		return array_values( $filtered );
+		return $filtered;
 	}
 
 	/**

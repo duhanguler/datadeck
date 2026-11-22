@@ -159,11 +159,11 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 		return array_values( $rows );
 	}
 
-	public function create_record( array $data ): int|WP_Error {
+	public function create_record( array $data ): WP_Error {
 		return new WP_Error( 'datadeck_unsupported', __( 'Create users via Users > Add New.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 
-	public function duplicate_record( int $record_id ): int|WP_Error {
+	public function duplicate_record( int $record_id ): WP_Error {
 		return new WP_Error( 'datadeck_unsupported', __( 'Users cannot be duplicated.', 'datadeck' ), [ 'status' => 400 ] );
 	}
 

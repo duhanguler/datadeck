@@ -4,7 +4,7 @@ Tags: admin columns, bulk edit, inline edit, spreadsheet, custom fields
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,12 +18,15 @@ DataDeck turns slow, multi-click WordPress admin lists into a high-precision, vi
 
 ### What Is Unlocked for Free
 
-* **Universal Entity Engine:** Manage **Posts, Pages, Custom Post Types (CPTs), Media Library, Users, WooCommerce Products, Inline Variations, and HPOS Orders** from a single workspace—or switch cleanly from any native list screen via the `[ Classic List | DataDeck Grid ]` header toggle.
-* **Zero-Shift Inline Spreadsheet Editing:** Click or press `Enter` to edit cells with **0px layout shift**. Navigate with `Tab`, `Shift+Tab`, `Enter`, and Arrow keys. Toggle between **Staged Save** (review dirty cells before committing, with `Cmd/Ctrl+Z` undo) and **Instant Save**.
+* **Universal Entity Engine:** Manage **Posts, Pages, Custom Post Types (CPTs), Media Library, Comments & Reviews, Users, WooCommerce Products, Inline Variations, and HPOS Orders** from a single workspace—or switch cleanly from any native list screen via the `[ Classic List | DataDeck Grid ]` header toggle.
+* **Zero-Shift Inline Spreadsheet Editing:** Click or press `Enter` to edit cells with **0px layout shift**. Navigate with `Tab`, `Shift+Tab`, `Enter`, and Arrow keys. Drag the blue corner **Fill Handle** down to auto-increment SKUs (`SKU-001` → `SKU-002`) or numeric series, reorder columns via drag-and-drop, right-click any cell to **Filter by this value (=)**, and view real-time **SUM / AVG / MIN / MAX / COUNT** column summaries.
+* **Smart CSV / JSON Import + Dry-Run Diff + Rollback:** Upload or paste supplier CSV/JSON sheets, match by **ID, SKU, Slug, or Email**, preview every `old -> new` diff before writing, apply in safe chunks, and undo the entire import in one click.
+* **Computed AST Formula Columns:** Built-in *Discount %* and *Inventory Value* virtual columns plus custom user-defined formula columns calculated live without cluttering your database.
+* **Optimistic Concurrency Guard & Cell-Level Rollback:** Detects concurrent edits from other admins before overwriting, and lets you inspect and restore individual cell history entries directly from the Inspector drawer.
 * **Excel & Google Sheets Clipboard Power:** Select vertical cell ranges (`Shift+Click` or `Shift+Arrows`), paste multi-cell matrices directly from Excel or Google Sheets (`Ctrl/Cmd+V`), copy ranges (`Ctrl/Cmd+C`), and Fill Down (`Cmd/Ctrl+D`).
 * **ACF, Secure Custom Fields (SCF), Meta Box & Native Meta:** Automatically discovers field schemas and lets you sort, filter, inline-edit, and bulk-edit custom fields for free.
 * **WooCommerce Catalog & HPOS Power:** Edit SKUs, Regular/Sale Prices, Stock Qty, Stock Status, Categories, and **expand Variable Product variations inline** without switching pages. Supports HPOS Orders natively.
-* **SEO Bulk Editing (Yoast SEO & Rank Math):** Edit SEO Titles, Meta Descriptions, Focus Keywords, Canonical URLs, and `noindex` toggles with live character count meters (`60/60`, `160/160`).
+* **SEO Bulk Editing (Yoast SEO, Rank Math, SEOPress & AIOSEO):** Edit SEO Titles, Meta Descriptions, Focus Keywords, Canonical URLs, and `noindex` toggles with live character count meters (`60/60`, `160/160`).
 * **Media Library Alt-Text Hygiene:** Audit and bulk-edit image `alt` text, captions, titles, dimensions, and file sizes in seconds.
 * **Safe AST Formula Bulk Engine (Zero `eval()`):** Run arithmetic, conditional, and string formulas across thousands of filtered records with a **Dry-Run Before/After Diff Preview** before saving:
   * `if(regular_price > 0, round(regular_price * 0.85, 0) - 0.01, '')`
@@ -73,6 +76,13 @@ Yes! Run `wp datadeck status`, `wp datadeck benchmark product`, `wp datadeck bul
 5. Media Library Missing Alt Text Audit Lens for rapid accessibility updates.
 
 == Changelog ==
+
+= 1.1.0 =
+* Added Smart CSV / JSON Import Wizard with auto-mapping, ID/SKU/Slug/Email matching, Dry-Run Diff preview, chunked application, One-Click Rollback, and `wp datadeck import` CLI command.
+* Added Virtual Computed AST Formula Columns (built-in WooCommerce Discount % & Inventory Value + custom user-defined formulas).
+* Added Excel-style Drag-to-Fill Handle with series inference, Right-Click Context Menu (`Filter by value`, `Exclude value`, `Cell audit history`), Sticky Aggregation Footer Bar (`SUM/AVG/MIN/MAX/COUNT`), and Drag-and-Drop Column Header Reordering.
+* Added Optimistic Concurrency Guard (`_modifiedAt` conflict detection) and Cell-Level Audit History with Single-Cell Rollback.
+* Added WordPress Comments & WooCommerce Reviews entity adapter with inline moderation lenses, plus SEOPress and AIOSEO auto-detection.
 
 = 1.0.0 =
 * Initial public release.

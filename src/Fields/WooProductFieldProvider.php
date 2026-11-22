@@ -363,10 +363,16 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 					$product->set_sku( sanitize_text_field( (string) $value ) );
 					break;
 				case 'regular_price':
+					if ( $product->is_type( 'variable' ) ) {
+						return new WP_Error( 'datadeck_variable_price', __( 'Variable product prices are set on individual variations — expand the parent row to edit them.', 'datadeck' ), [ 'status' => 400 ] );
+					}
 					$str = ( null === $value || '' === $value ) ? '' : (string) max( 0.0, (float) $value );
 					$product->set_regular_price( $str );
 					break;
 				case 'sale_price':
+					if ( $product->is_type( 'variable' ) ) {
+						return new WP_Error( 'datadeck_variable_price', __( 'Variable product sale prices are set on individual variations — expand the parent row to edit them.', 'datadeck' ), [ 'status' => 400 ] );
+					}
 					$str = ( null === $value || '' === $value ) ? '' : (string) max( 0.0, (float) $value );
 					$product->set_sale_price( $str );
 					break;
