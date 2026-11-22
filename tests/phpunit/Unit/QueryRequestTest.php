@@ -41,4 +41,22 @@ final class QueryRequestTest extends TestCase {
 		$this->assertCount( 1, $req->filters );
 		$this->assertSame( 'regular_price', $req->filters[0]['field'] );
 	}
+
+	public function test_sort_field_preserves_colon_for_acf_and_meta_fields(): void {
+		$req = QueryRequest::from_array(
+			'product',
+			[
+				'sort_field' => 'acf:unit_cost',
+			]
+		);
+		$this->assertSame( 'acf:unit_cost', $req->sort_field );
+
+		$meta = QueryRequest::from_array(
+			'post',
+			[
+				'sort_field' => 'meta:_custom_rank;DROP',
+			]
+		);
+		$this->assertSame( 'meta:_custom_rankDROP', $meta->sort_field );
+	}
 }

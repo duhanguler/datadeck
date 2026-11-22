@@ -935,25 +935,40 @@ export function App() {
 					menu={ contextMenu }
 					selectedCount={ selectedIdList.length }
 					onFilterEquals={ ( field, val ) => {
-						const op = field.type === 'select' || field.type === 'taxonomy' ? 'is' : 'equals';
 						const next = [
 							...state.filters,
-							{ id: `ctx_${ Date.now() }`, field: field.id, operator: op, value: String( val ) },
+							{ id: `ctx_${ Date.now() }`, field: field.id, operator: 'is', value: String( val ) },
 						];
 						setShowFilters( true );
 						dispatch.setQueryParam( { filters: next, page: 1 } );
 					} }
 					onFilterNotEquals={ ( field, val ) => {
-						const op = field.type === 'select' || field.type === 'taxonomy' ? 'is_not' : 'not_equals';
 						const next = [
 							...state.filters,
-							{ id: `ctx_${ Date.now() }`, field: field.id, operator: op, value: String( val ) },
+							{ id: `ctx_${ Date.now() }`, field: field.id, operator: 'isnot', value: String( val ) },
 						];
 						setShowFilters( true );
 						dispatch.setQueryParam( { filters: next, page: 1 } );
 					} }
 					onCopyValue={ ( val ) => {
-						const txt = val === null || val === undefined ? '' : typeof val === 'object' ? JSON.stringify( val ) : String( val );
+						let txt = '';
+						if ( val !== null && val !== undefined ) {
+							if ( Array.isArray( val ) ) {
+								txt = val
+									.map( ( item ) =>
+										typeof item === 'object' && item && 'label' in item
+											? String( ( item as { label: unknown } ).label )
+											: String( item )
+									)
+									.join( ', ' );
+							} else if ( typeof val === 'object' && 'url' in ( val as Record<string, unknown> ) ) {
+								txt = String( ( val as { url: unknown } ).url || '' );
+							} else if ( typeof val === 'object' ) {
+								txt = JSON.stringify( val );
+							} else {
+								txt = String( val );
+							}
+						}
 						if ( navigator.clipboard?.writeText ) {
 							navigator.clipboard.writeText( txt ).catch( () => {} );
 						}

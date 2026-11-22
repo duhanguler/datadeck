@@ -161,14 +161,14 @@ final class RestApi {
 			]
 		);
 
-		// Scheduled & auto-reverting campaigns.
+		// Scheduled & auto-reverting campaigns (Editor / Shop Manager / Admin only).
 		register_rest_route(
 			self::NAMESPACE,
 			'/schedules/(?P<entity>[a-z0-9_\-]+)',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'create_schedule' ],
-				'permission_callback' => [ $this, 'can_read_entity' ],
+				'permission_callback' => [ $this, 'can_manage_entity_automation' ],
 			]
 		);
 
@@ -178,18 +178,18 @@ final class RestApi {
 			[
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => [ $this, 'cancel_schedule' ],
-				'permission_callback' => [ $this, 'can_access_admin' ],
+				'permission_callback' => [ $this, 'can_manage_global_config' ],
 			]
 		);
 
-		// Saved views & datadeck-json sync.
+		// Saved views & datadeck-json sync (global views require Editor / Shop Manager / Admin).
 		register_rest_route(
 			self::NAMESPACE,
 			'/views/(?P<entity>[a-z0-9_\-]+)',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'save_view' ],
-				'permission_callback' => [ $this, 'can_read_entity' ],
+				'permission_callback' => [ $this, 'can_manage_entity_automation' ],
 			]
 		);
 
@@ -199,7 +199,7 @@ final class RestApi {
 			[
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => [ $this, 'delete_view' ],
-				'permission_callback' => [ $this, 'can_access_admin' ],
+				'permission_callback' => [ $this, 'can_manage_global_config' ],
 			]
 		);
 
@@ -256,14 +256,14 @@ final class RestApi {
 			]
 		);
 
-		// Custom virtual AST computed columns.
+		// Custom virtual AST computed columns (global config requires Editor / Shop Manager / Admin).
 		register_rest_route(
 			self::NAMESPACE,
 			'/computed-fields/(?P<entity>[a-z0-9_\-]+)',
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'save_computed_field' ],
-				'permission_callback' => [ $this, 'can_read_entity' ],
+				'permission_callback' => [ $this, 'can_manage_entity_automation' ],
 			]
 		);
 
@@ -273,7 +273,7 @@ final class RestApi {
 			[
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => [ $this, 'delete_computed_field' ],
-				'permission_callback' => [ $this, 'can_read_entity' ],
+				'permission_callback' => [ $this, 'can_manage_entity_automation' ],
 			]
 		);
 
@@ -323,6 +323,26 @@ final class RestApi {
 		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
 		$adapter = $this->entities->get( $entity );
 		return $adapter ? $adapter->can_read() : false;
+	}
+
+	/**
+	 * Require elevated editor / shop manager / administrator permissions for global configuration.
+	 */
+	public function can_manage_global_config(): bool {
+		return is_user_logged_in() && (
+			current_user_can( 'manage_options' ) ||
+			current_user_can( 'edit_others_posts' ) ||
+			current_user_can( 'manage_woocommerce' )
+		);
+	}
+
+	/**
+	 * Require both entity read permission and elevated management permission for automation/global config.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function can_manage_entity_automation( WP_REST_Request $request ): bool {
+		return $this->can_read_entity( $request ) && $this->can_manage_global_config();
 	}
 
 	public function get_entities(): WP_REST_Response {
@@ -524,13 +544,36 @@ final class RestApi {
 	/**
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 */
-	public function get_history( WP_REST_Request $request ): WP_REST_Response {
+	public function get_history( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$entity = sanitize_key( (string) ( $request->get_param( 'entity' ) ?? '' ) );
 		$limit  = (int) ( $request->get_param( 'limit' ) ?? 30 );
 
+		if ( '' !== $entity ) {
+			$adapter = $this->entities->get( $entity );
+			if ( ! $adapter || ! $adapter->can_read() ) {
+				return new WP_Error( 'datadeck_forbidden', __( 'Permission denied to view history for this entity.', 'datadeck' ), [ 'status' => 403 ] );
+			}
+			return new WP_REST_Response(
+				[
+					'batches' => $this->history->list_batches( $entity, $limit ),
+				],
+				200
+			);
+		}
+
+		// Filter global history strictly to entities the current user can read.
+		$all      = $this->history->list_batches( '', $limit );
+		$readable = array_column( $this->entities->list_readable(), 'slug' );
+		$filtered = array_values(
+			array_filter(
+				$all,
+				static fn( array $b ): bool => in_array( (string) ( $b['entityType'] ?? '' ), $readable, true )
+			)
+		);
+
 		return new WP_REST_Response(
 			[
-				'batches' => $this->history->list_batches( $entity, $limit ),
+				'batches' => $filtered,
 			],
 			200
 		);
@@ -542,7 +585,15 @@ final class RestApi {
 	public function get_history_detail( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$uuid = sanitize_text_field( (string) $request->get_param( 'uuid' ) );
 		$res  = $this->history->get_batch_detail( $uuid );
-		return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		$entity  = sanitize_key( (string) ( $res['entityType'] ?? '' ) );
+		$adapter = $this->entities->get( $entity );
+		if ( ! $adapter || ! $adapter->can_read() ) {
+			return new WP_Error( 'datadeck_forbidden', __( 'Permission denied to view this audit batch.', 'datadeck' ), [ 'status' => 403 ] );
+		}
+		return new WP_REST_Response( $res, 200 );
 	}
 
 	/**
@@ -675,10 +726,11 @@ final class RestApi {
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 */
 	public function get_record_history( WP_REST_Request $request ): WP_REST_Response {
-		$entity = sanitize_key( (string) $request->get_param( 'entity' ) );
-		$id     = (int) $request->get_param( 'id' );
-		$field  = sanitize_key( (string) ( $request->get_param( 'field' ) ?? '' ) );
-		$limit  = (int) ( $request->get_param( 'limit' ) ?? 50 );
+		$entity    = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$id        = (int) $request->get_param( 'id' );
+		$raw_field = (string) ( $request->get_param( 'field' ) ?? '' );
+		$field     = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', $raw_field );
+		$limit     = (int) ( $request->get_param( 'limit' ) ?? 50 );
 
 		return new WP_REST_Response(
 			[

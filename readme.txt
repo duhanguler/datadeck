@@ -4,7 +4,7 @@ Tags: admin columns, bulk edit, inline edit, spreadsheet, custom fields
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,11 @@ Yes! Run `wp datadeck status`, `wp datadeck benchmark product`, `wp datadeck bul
 5. Media Library Missing Alt Text Audit Lens for rapid accessibility updates.
 
 == Changelog ==
+
+= 1.1.1 =
+* Security hardening across scheduled campaigns, audit history access control, global views/computed columns, post publish/author capability guards, and Abilities API checks.
+* Fixed MySQL 8 `ONLY_FULL_GROUP_BY` sorting compatibility in `SmartQueryPlanner`, preserved `OR` filters across streaming chunks, fixed >500-order HPOS streaming cursor, and preserved filters/search in User & Comment streaming.
+* Fixed AST tokenizer subtraction without spaces (`regular_price-sale_price`), colon-namespaced ACF/Meta sorting (`acf:*`, `meta:*`), right-click context menu filter operators (`is`/`isnot`), bulk comma-separated taxonomies, duplicate-SKU creation error handling, `Shift+Arrow` range anchor, and missing `--rc-accent-soft`/`--rc-danger-soft` tokens.
 
 = 1.1.0 =
 * Added Smart CSV / JSON Import Wizard with auto-mapping, ID/SKU/Slug/Email matching, Dry-Run Diff preview, chunked application, One-Click Rollback, and `wp datadeck import` CLI command.

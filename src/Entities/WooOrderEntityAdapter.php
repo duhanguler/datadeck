@@ -129,17 +129,60 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function stream_ids( QueryRequest $request, int $after_id, int $limit ): array {
-		$result = wc_get_orders(
-			[
-				'limit'   => $limit,
-				'orderby' => 'ID',
-				'order'   => 'ASC',
-				'return'  => 'ids',
-			]
-		);
+		global $wpdb;
+
+		$args = [
+			'limit'   => max( 1, min( 1000, $limit ) ),
+			'orderby' => 'ID',
+			'order'   => 'ASC',
+			'return'  => 'ids',
+		];
+
+		if ( '' !== $request->search ) {
+			$args['s'] = $request->search;
+		}
+
+		foreach ( $request->filters as $f ) {
+			$fid = (string) ( $f['field'] ?? '' );
+			$op  = (string) ( $f['operator'] ?? '' );
+			$val = $f['value'] ?? null;
+
+			if ( 'status' === $fid && in_array( $op, [ 'is', 'equals' ], true ) && ! empty( $val ) ) {
+				$args['status'] = 'wc-' . str_replace( 'wc-', '', sanitize_key( (string) $val ) );
+			} elseif ( 'billing_email' === $fid && ! empty( $val ) ) {
+				$args['billing_email'] = sanitize_email( (string) $val );
+			}
+		}
+
+		$hpos_filter = static function ( array $clauses ) use ( $after_id, $wpdb ): array {
+			if ( $after_id > 0 ) {
+				$table            = $wpdb->prefix . 'wc_orders';
+				$clauses['where'] = ( (string) ( $clauses['where'] ?? '' ) ) . $wpdb->prepare( ' AND %i.id > %d', $table, $after_id );
+			}
+			return $clauses;
+		};
+
+		$legacy_filter = static function ( string $where ) use ( $after_id, $wpdb ): string {
+			if ( $after_id > 0 ) {
+				$where .= $wpdb->prepare( " AND {$wpdb->posts}.ID > %d", $after_id );
+			}
+			return $where;
+		};
+
+		add_filter( 'woocommerce_orders_table_query_clauses', $hpos_filter );
+		add_filter( 'posts_where', $legacy_filter );
+
+		try {
+			$result = wc_get_orders( $args );
+		} finally {
+			remove_filter( 'woocommerce_orders_table_query_clauses', $hpos_filter );
+			remove_filter( 'posts_where', $legacy_filter );
+		}
+
 		if ( ! is_array( $result ) ) {
 			return [];
 		}
+
 		return array_values( array_filter( array_map( 'intval', $result ), static fn( int $id ): bool => $id > $after_id ) );
 	}
 

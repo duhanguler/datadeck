@@ -420,12 +420,23 @@ final class CorePostFieldProvider implements FieldProviderInterface {
 				if ( ! in_array( $status, $allowed, true ) ) {
 					return new WP_Error( 'datadeck_invalid_status', __( 'Invalid post status.', 'datadeck' ), [ 'status' => 400 ] );
 				}
+				$pt_obj = get_post_type_object( $entity_slug );
+				if ( in_array( $status, [ 'publish', 'future', 'private' ], true ) && $pt_obj && ! current_user_can( $pt_obj->cap->publish_posts ) ) {
+					return new WP_Error( 'datadeck_publish_forbidden', __( 'You do not have permission to publish this item.', 'datadeck' ), [ 'status' => 403 ] );
+				}
+				if ( 'trash' === $status && ! current_user_can( 'delete_post', $record_id ) ) {
+					return new WP_Error( 'datadeck_delete_forbidden', __( 'You do not have permission to trash this item.', 'datadeck' ), [ 'status' => 403 ] );
+				}
 				$update['post_status'] = $status;
 				break;
 			case 'author':
 				$author_id = (int) $value;
 				if ( $author_id <= 0 || ! get_userdata( $author_id ) ) {
 					return new WP_Error( 'datadeck_invalid_author', __( 'Invalid author ID.', 'datadeck' ), [ 'status' => 400 ] );
+				}
+				$pt_obj = get_post_type_object( $entity_slug );
+				if ( get_current_user_id() !== $author_id && $pt_obj && ! current_user_can( $pt_obj->cap->edit_others_posts ) ) {
+					return new WP_Error( 'datadeck_author_forbidden', __( 'You do not have permission to reassign post authors.', 'datadeck' ), [ 'status' => 403 ] );
 				}
 				$update['post_author'] = $author_id;
 				break;

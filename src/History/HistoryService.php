@@ -335,17 +335,30 @@ final class HistoryService {
 			}
 		}
 
+		if ( empty( $restored_objects ) && ! empty( $errors ) ) {
+			// Delete empty rollback audit row and leave original batch intact for authorized users.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->delete( $batches, [ 'id' => $rollback_batch['id'] ], [ '%d' ] );
+			return new WP_Error(
+				'datadeck_rollback_forbidden',
+				(string) ( $errors[0]['message'] ?? __( 'Permission denied to roll back this batch.', 'datadeck' ) ),
+				[ 'status' => 403 ]
+			);
+		}
+
 		$this->finalize_batch_count( $rollback_batch['id'] );
 
-		// Mark original batch as rolled_back.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->update(
-			$batches,
-			[ 'status' => $bypass_capability ? 'reverted' : 'rolled_back' ],
-			[ 'id' => (int) $batch->id ],
-			[ '%s' ],
-			[ '%d' ]
-		);
+		// Mark original batch as rolled_back only when all permitted deltas succeeded.
+		if ( ! empty( $restored_objects ) || empty( $rows ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update(
+				$batches,
+				[ 'status' => $bypass_capability ? 'reverted' : 'rolled_back' ],
+				[ 'id' => (int) $batch->id ],
+				[ '%s' ],
+				[ '%d' ]
+			);
+		}
 
 		return [
 			'restored'     => count( $restored_objects ),

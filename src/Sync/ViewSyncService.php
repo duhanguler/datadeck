@@ -83,7 +83,7 @@ final class ViewSyncService {
 			'columns'        => $cols,
 			'columnWidths'   => $widths,
 			'density'        => $density,
-			'sortField'      => sanitize_key( (string) ( $payload['sortField'] ?? 'id' ) ),
+			'sortField'      => (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) ( $payload['sortField'] ?? 'id' ) ),
 			'sortDirection'  => 'asc' === strtolower( (string) ( $payload['sortDirection'] ?? 'desc' ) ) ? 'asc' : 'desc',
 			'filters'        => is_array( $payload['filters'] ?? null ) ? $payload['filters'] : [],
 			'filterRelation' => 'OR' === strtoupper( (string) ( $payload['filterRelation'] ?? 'AND' ) ) ? 'OR' : 'AND',

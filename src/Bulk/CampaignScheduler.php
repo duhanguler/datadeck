@@ -126,12 +126,16 @@ final class CampaignScheduler {
 
 		wp_clear_scheduled_hook( self::HOOK_APPLY, [ $batch_uuid ] );
 		wp_clear_scheduled_hook( self::HOOK_REVERT, [ $batch_uuid ] );
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( self::HOOK_APPLY, [ $batch_uuid ], 'datadeck' );
+			as_unschedule_all_actions( self::HOOK_REVERT, [ $batch_uuid ], 'datadeck' );
+		}
 
 		return true;
 	}
 
 	/**
-	 * Execute a scheduled campaign in safe chunks.
+	 * Execute a scheduled campaign in safe chunks under the scheduling user's capability context.
 	 */
 	public function run_campaign( string $batch_uuid ): void {
 		global $wpdb;
@@ -151,24 +155,37 @@ final class CampaignScheduler {
 			return;
 		}
 
-		$after_id = 0;
-		while ( true ) {
-			$res = $this->bulk->execute_chunk(
-				(string) $batch->entity_type,
-				(array) $payload['rule'],
-				(array) ( $payload['target_ids'] ?? [] ),
-				(array) ( $payload['query_params'] ?? [] ),
-				$after_id,
-				100,
-				$batch_uuid,
-				true,
-				$batch->revert_at
-			);
+		$prev_user_id  = get_current_user_id();
+		$owner_user_id = (int) $batch->user_id;
+		$has_owner     = $owner_user_id > 0 && (bool) get_userdata( $owner_user_id );
+		if ( $has_owner ) {
+			wp_set_current_user( $owner_user_id );
+		}
 
-			if ( is_wp_error( $res ) || empty( $res['hasMore'] ) ) {
-				break;
+		try {
+			$after_id = 0;
+			while ( true ) {
+				$res = $this->bulk->execute_chunk(
+					(string) $batch->entity_type,
+					(array) $payload['rule'],
+					(array) ( $payload['target_ids'] ?? [] ),
+					(array) ( $payload['query_params'] ?? [] ),
+					$after_id,
+					100,
+					$batch_uuid,
+					! $has_owner,
+					$batch->revert_at
+				);
+
+				if ( is_wp_error( $res ) || empty( $res['hasMore'] ) ) {
+					break;
+				}
+				$after_id = (int) $res['lastId'];
 			}
-			$after_id = (int) $res['lastId'];
+		} finally {
+			if ( $has_owner ) {
+				wp_set_current_user( $prev_user_id );
+			}
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

@@ -56,7 +56,8 @@ final class QueryRequest {
 		$page       = max( 1, (int) ( $params['page'] ?? 1 ) );
 		$per_page   = min( 500, max( 1, (int) ( $params['per_page'] ?? 50 ) ) );
 		$search     = isset( $params['search'] ) ? sanitize_text_field( (string) $params['search'] ) : '';
-		$sort_field = isset( $params['sort_field'] ) ? sanitize_key( (string) $params['sort_field'] ) : 'id';
+		$sort_raw   = isset( $params['sort_field'] ) ? (string) $params['sort_field'] : 'id';
+		$sort_field = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', $sort_raw );
 		$sort_dir   = strtolower( (string) ( $params['sort_direction'] ?? 'desc' ) ) === 'asc' ? 'asc' : 'desc';
 		$relation   = strtoupper( (string) ( $params['filter_relation'] ?? 'AND' ) ) === 'OR' ? 'OR' : 'AND';
 		$lens       = isset( $params['lens'] ) ? sanitize_key( (string) $params['lens'] ) : '';

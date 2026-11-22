@@ -195,6 +195,47 @@ if ( $comment_adapter ) {
 	$assert( $cm_res->total >= 1, sprintf( 'Queried %d WordPress comments cleanly', $cm_res->total ) );
 }
 
+// 13. v1.1.1 Bug-Hunt Regressions: Media stream_ids, Order cursor stream_ids, OR stream preservation, ACF sort.
+if ( $media_adapter ) {
+	$media_stream = $media_adapter->stream_ids( QueryRequest::from_array( 'attachment', [ 'lens' => 'media_missing_alt' ] ), 0, 50 );
+	$assert( count( $media_stream ) >= 2, sprintf( 'Media stream_ids() returned %d attachments (inherit status fix)', count( $media_stream ) ) );
+}
+
+if ( $order_adapter ) {
+	$o_chunk1 = $order_adapter->stream_ids( QueryRequest::from_array( 'shop_order', [] ), 0, 2 );
+	$o_chunk2 = ! empty( $o_chunk1 )
+		? $order_adapter->stream_ids( QueryRequest::from_array( 'shop_order', [] ), max( $o_chunk1 ), 2 )
+		: [];
+	$assert(
+		count( $o_chunk1 ) === 2 && count( $o_chunk2 ) >= 1 && min( $o_chunk2 ) > max( $o_chunk1 ),
+		'WooCommerce HPOS stream_ids() advances cursor accurately across chunks without truncation'
+	);
+}
+
+if ( $prod_adapter ) {
+	$or_req = QueryRequest::from_array(
+		'product',
+		[
+			'filter_relation' => 'OR',
+			'filters'         => [
+				[ 'field' => 'stock_status', 'operator' => 'is', 'value' => 'outofstock' ],
+				[ 'field' => 'regular_price', 'operator' => 'gte', 'value' => 300 ],
+			],
+		]
+	);
+	$or_total = $prod_adapter->query( $or_req )->total;
+	$or_c1    = $prod_adapter->stream_ids( $or_req, 0, 2 );
+	$or_c2    = ! empty( $or_c1 ) ? $prod_adapter->stream_ids( $or_req, max( $or_c1 ), 20 ) : [];
+	$assert(
+		( count( $or_c1 ) + count( $or_c2 ) ) === $or_total && $or_total >= 3,
+		sprintf( 'SmartQueryPlanner stream_post_ids() preserved OR filter across chunks (%d/%d)', count( $or_c1 ) + count( $or_c2 ), $or_total )
+	);
+
+	// Verify ACF colon-namespaced sort_field works cleanly.
+	$acf_sort = $prod_adapter->query( QueryRequest::from_array( 'product', [ 'sort_field' => 'acf:unit_cost', 'sort_direction' => 'desc', 'per_page' => 5 ] ) );
+	$assert( count( $acf_sort->items ) >= 1, 'Sorting by colon-namespaced ACF column (acf:unit_cost) succeeded' );
+}
+
 if ( ! empty( $failures ) ) {
 	echo "\nFAILED ASSERTIONS (" . count( $failures ) . "):\n - " . implode( "\n - ", $failures ) . "\n";
 	exit( 1 );

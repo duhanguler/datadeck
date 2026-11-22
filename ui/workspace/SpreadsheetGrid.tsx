@@ -100,6 +100,7 @@ export function SpreadsheetGrid( {
 	onOpenContextMenu,
 }: SpreadsheetGridProps ) {
 	const scrollRef = useRef<HTMLDivElement>( null );
+	const rangeAnchorRef = useRef<{ rowIndex: number; colIndex: number } | null>( null );
 	const [ scrolledX, setScrolledX ] = useState( false );
 	const [ initialChar, setInitialChar ] = useState<string | undefined>( undefined );
 	const [ resizingCol, setResizingCol ] = useState<string | null>( null );
@@ -195,13 +196,19 @@ export function SpreadsheetGrid( {
 			}
 
 			if ( extendRange && focusedCell && focusedCell.colIndex === clampedCol ) {
+				const anchor =
+					rangeAnchorRef.current && rangeAnchorRef.current.colIndex === clampedCol
+						? rangeAnchorRef.current.rowIndex
+						: focusedCell.rowIndex;
+				rangeAnchorRef.current = { rowIndex: anchor, colIndex: clampedCol };
 				onSelectRange( {
-					startRow: Math.min( focusedCell.rowIndex, clampedRow ),
-					endRow: Math.max( focusedCell.rowIndex, clampedRow ),
+					startRow: Math.min( anchor, clampedRow ),
+					endRow: Math.max( anchor, clampedRow ),
 					colIndex: clampedCol,
 					fieldId: col.id,
 				} );
 			} else {
+				rangeAnchorRef.current = { rowIndex: clampedRow, colIndex: clampedCol };
 				onSelectRange( null );
 			}
 
@@ -300,7 +307,25 @@ export function SpreadsheetGrid( {
 					}
 					const k = `${ row.id }:${ col.id }`;
 					const val = stagedEdits[ k ] !== undefined ? stagedEdits[ k ].newValue : row[ col.id ];
-					lines.push( val === null || val === undefined ? '' : String( val ) );
+					if ( val === null || val === undefined ) {
+						lines.push( '' );
+					} else if ( Array.isArray( val ) ) {
+						lines.push(
+							val
+								.map( ( item ) =>
+									typeof item === 'object' && item && 'label' in item
+										? String( ( item as { label: unknown } ).label )
+										: String( item )
+								)
+								.join( ', ' )
+						);
+					} else if ( typeof val === 'object' && 'url' in ( val as Record<string, unknown> ) ) {
+						lines.push( String( ( val as { url: unknown } ).url || '' ) );
+					} else if ( typeof val === 'object' ) {
+						lines.push( JSON.stringify( val ) );
+					} else {
+						lines.push( String( val ) );
+					}
 				}
 				navigator.clipboard.writeText( lines.join( '\n' ) ).catch( () => {} );
 			}
@@ -346,6 +371,19 @@ export function SpreadsheetGrid( {
 			for ( let cOffset = 0; cOffset < rowVals.length; cOffset++ ) {
 				const targetCol = columns[ focusedCell.colIndex + cOffset ];
 				if ( ! targetCol || ! targetCol.editable ) {
+					continue;
+				}
+				if ( targetCol.type === 'media' ) {
+					const parsedId = parseInt( rowVals[ cOffset ].trim(), 10 );
+					if ( Number.isNaN( parsedId ) || parsedId <= 0 ) {
+						continue;
+					}
+					edits.push( {
+						recordId: targetRow.id,
+						fieldId: targetCol.id,
+						oldValue: targetRow[ targetCol.id ],
+						newValue: parsedId,
+					} );
 					continue;
 				}
 				edits.push( {
@@ -699,13 +737,19 @@ export function SpreadsheetGrid( {
 														onEditCell( null );
 													}
 													if ( shiftKey && focusedCell && focusedCell.colIndex === colIdx ) {
+														const anchor =
+															rangeAnchorRef.current && rangeAnchorRef.current.colIndex === colIdx
+																? rangeAnchorRef.current.rowIndex
+																: focusedCell.rowIndex;
+														rangeAnchorRef.current = { rowIndex: anchor, colIndex: colIdx };
 														onSelectRange( {
-															startRow: Math.min( focusedCell.rowIndex, vRow.index ),
-															endRow: Math.max( focusedCell.rowIndex, vRow.index ),
+															startRow: Math.min( anchor, vRow.index ),
+															endRow: Math.max( anchor, vRow.index ),
 															colIndex: colIdx,
 															fieldId: col.id,
 														} );
 													} else {
+														rangeAnchorRef.current = { rowIndex: vRow.index, colIndex: colIdx };
 														onSelectRange( null );
 													}
 													onFocusCell( {

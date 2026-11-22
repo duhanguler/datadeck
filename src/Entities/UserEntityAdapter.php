@@ -124,15 +124,41 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 
 	public function stream_ids( QueryRequest $request, int $after_id, int $limit ): array {
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT ID FROM {$wpdb->users} WHERE ID > %d ORDER BY ID ASC LIMIT %d",
-				$after_id,
-				$limit
-			)
-		);
-		return array_map( 'intval', (array) $ids );
+
+		$args = [
+			'fields'      => 'ID',
+			'number'      => max( 1, min( 1000, $limit ) ),
+			'orderby'     => 'ID',
+			'order'       => 'ASC',
+			'count_total' => false,
+		];
+
+		if ( '' !== $request->search ) {
+			$args['search']         = '*' . $request->search . '*';
+			$args['search_columns'] = [ 'user_login', 'user_email', 'display_name' ];
+		}
+
+		foreach ( $request->filters as $f ) {
+			if ( 'role' === ( $f['field'] ?? '' ) && in_array( (string) ( $f['operator'] ?? '' ), [ 'is', 'equals' ], true ) && ! empty( $f['value'] ) ) {
+				$args['role'] = sanitize_key( (string) $f['value'] );
+			}
+		}
+
+		$cursor_hook = static function ( \WP_User_Query $uq ) use ( $after_id, $wpdb ): void {
+			if ( $after_id > 0 ) {
+				$uq->query_where .= $wpdb->prepare( " AND {$wpdb->users}.ID > %d", $after_id );
+			}
+		};
+
+		add_action( 'pre_user_query', $cursor_hook );
+		try {
+			$uq  = new WP_User_Query( $args );
+			$ids = array_map( 'intval', (array) $uq->get_results() );
+		} finally {
+			remove_action( 'pre_user_query', $cursor_hook );
+		}
+
+		return $ids;
 	}
 
 	public function hydrate_records( array $ids, array $field_ids ): array {

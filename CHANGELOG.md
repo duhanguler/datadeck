@@ -2,6 +2,23 @@
 
 All notable changes to DataDeck are documented in this file.
 
+## [1.1.1] - 2026-11-22
+
+### Security
+- **Scheduled Campaigns & Global Config Hardening:** Restricted campaign scheduling/cancellation, global Saved Views, and global Computed Columns to elevated roles (`manage_options`, `edit_others_posts`, or `manage_woocommerce`) and executed scheduled campaigns under the original scheduling user's capability context instead of bypassing checks.
+- **Audit History Access Control:** Enforced entity-level read permissions on `/history` and `/history/{uuid}` endpoints and prevented unauthorized rollback attempts from marking batches as `rolled_back`.
+- **Post Status & Author Capability Guards:** Enforced `publish_posts`, `delete_post`, and `edit_others_posts` checks in `CorePostFieldProvider::write_value()` to prevent low-privilege contributors from publishing drafts or reassigning authors.
+- **Abilities API Read Check:** Added `$adapter->can_read()` guard to `datadeck/preview-bulk-edit` and restricted `datadeck/rollback-batch` to editors/administrators.
+
+### Fixed
+- **MySQL 8 `ONLY_FULL_GROUP_BY` Compatibility:** Replaced `SELECT DISTINCT ... ORDER BY joined_col` with `GROUP BY p.ID ORDER BY MAX/MIN(...)` in `SmartQueryPlanner` to prevent SQL error 3065 on strict MySQL 8 servers.
+- **Streaming Export & Bulk Cursor Fixes:** Fixed `WooOrderEntityAdapter::stream_ids()` truncation past 500 orders, preserved search/lens/filters in `User` and `Comment` stream cursors, skipped unused option queries in `MediaEntityAdapter::stream_ids()`, and preserved `OR` filter relations across chunks in `SmartQueryPlanner::stream_post_ids()`.
+- **AST Tokenizer Subtraction Fix:** Excluded `-` from identifier scanning in `Tokenizer` so expressions without spaces like `regular_price-sale_price` or `regular_price-10` evaluate accurately as subtraction.
+- **Colon-Namespaced Field Sorting & History:** Preserved `:` in `sort_field`, Saved View `sortField`, and cell-history `field` filters so sorting/auditing `acf:*` and `meta:*` columns works reliably.
+- **Right-Click Context Menu Filtering:** Emitted canonical `is` / `isnot` operators for all column types so *Filter by this value* and *Exclude this value* work cleanly across SKU, price, text, and select columns.
+- **Bulk Engine & WooCommerce Polish:** Fixed comma-separated taxonomy bulk transforms, skipped empty base prices in `math_percent` / `round_ending`, caught duplicate-SKU `WC_Data_Exception` on product creation, unscheduled Action Scheduler jobs on campaign cancel, added PHP 8.4-safe `fputcsv` escape argument, and skipped no-op edits/empty history batches.
+- **Grid UX Polish:** Fixed `Shift+Arrow` range selection anchor drift, formatted Taxonomy/Media objects cleanly on `Ctrl+C`, protected Media cells on text `Ctrl+V`, synced `InspectorDrawer` state on record refresh, and defined missing `--rc-accent-soft` / `--rc-danger-soft` CSS tokens.
+
 ## [1.1.0] - 2026-11-22
 
 ### Added

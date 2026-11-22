@@ -147,7 +147,10 @@ final class BulkOperationEngine {
 			}
 
 			$old_value = $this->fields->read_value( $entity_slug, $oid, $field_id );
-			$res       = $this->fields->write_value( $entity_slug, $oid, $field_id, $new_value );
+			if ( $this->values_equal( $old_value, $new_value ) ) {
+				continue;
+			}
+			$res = $this->fields->write_value( $entity_slug, $oid, $field_id, $new_value );
 
 			if ( is_wp_error( $res ) ) {
 				$errors[] = [
@@ -165,9 +168,12 @@ final class BulkOperationEngine {
 
 		$this->history->finalize_batch_count( $batch['id'] );
 
-		$modified_map = [];
+		$modified_map   = [];
+		$is_post_entity = ! in_array( $entity_slug, [ 'user', 'shop_order', 'comment' ], true );
 		foreach ( array_keys( $touched_ids ) as $tid ) {
-			clean_post_cache( (int) $tid );
+			if ( $is_post_entity ) {
+				clean_post_cache( (int) $tid );
+			}
 			$mod = $this->read_record_modified_gmt( $entity_slug, (int) $tid );
 			if ( '' !== $mod ) {
 				$modified_map[ (string) $tid ] = $mod;
@@ -252,7 +258,7 @@ final class BulkOperationEngine {
 		foreach ( $hydrated as $row ) {
 			$oid      = (int) $row['id'];
 			$old_val  = $row[ $field_id ] ?? null;
-			$computed = $this->compute_new_value( $old_val, $row, $rule, $compiled_ast );
+			$computed = $this->compute_new_value( $old_val, $row, $rule, $compiled_ast, $field->taxonomy );
 
 			$previews[] = [
 				'id'       => $oid,
@@ -327,6 +333,19 @@ final class BulkOperationEngine {
 			$has_more  = count( $chunk_ids ) >= $chunk_size;
 		}
 
+		if ( empty( $chunk_ids ) ) {
+			return [
+				'batchUuid'     => $batch_uuid ?? '',
+				'processed'     => 0,
+				'updated'       => 0,
+				'lastId'        => $after_id,
+				'hasMore'       => false,
+				'errors'        => [],
+				'durationMs'    => round( ( microtime( true ) - $start ) * 1000, 2 ),
+				'nextChunkSize' => $chunk_size,
+			];
+		}
+
 		$action  = sanitize_key( (string) ( $rule['action'] ?? 'set' ) );
 		$summary = sprintf(
 			'Bulk %s on %s.%s',
@@ -346,19 +365,6 @@ final class BulkOperationEngine {
 			$revert_at
 		);
 
-		if ( empty( $chunk_ids ) ) {
-			return [
-				'batchUuid'     => $batch['uuid'],
-				'processed'     => 0,
-				'updated'       => 0,
-				'lastId'        => $after_id,
-				'hasMore'       => false,
-				'errors'        => [],
-				'durationMs'    => round( ( microtime( true ) - $start ) * 1000, 2 ),
-				'nextChunkSize' => $chunk_size,
-			];
-		}
-
 		// Hydrate context needed for formulas/templates in 1 selective batch.
 		$context_fields = $this->collect_context_fields( $entity_slug, $field_id, $rule );
 		$hydrated       = $adapter->hydrate_records( $chunk_ids, $context_fields );
@@ -376,13 +382,17 @@ final class BulkOperationEngine {
 			}
 
 			$old_val  = $this->fields->read_value( $entity_slug, $oid, $field_id );
-			$computed = $this->compute_new_value( $old_val, $row, $rule, $compiled_ast );
+			$computed = $this->compute_new_value( $old_val, $row, $rule, $compiled_ast, $field->taxonomy );
 
 			if ( is_wp_error( $computed ) ) {
 				$errors[] = [
 					'id'      => $oid,
 					'message' => $computed->get_error_message(),
 				];
+				continue;
+			}
+
+			if ( $this->values_equal( $old_val, $computed ) ) {
 				continue;
 			}
 
@@ -434,7 +444,8 @@ final class BulkOperationEngine {
 		mixed $current_val,
 		array $row_context,
 		array $rule,
-		?array $compiled_ast
+		?array $compiled_ast,
+		string $taxonomy = ''
 	): mixed {
 		$action = sanitize_key( (string) ( $rule['action'] ?? 'set' ) );
 		$value  = $rule['value'] ?? null;
@@ -457,17 +468,26 @@ final class BulkOperationEngine {
 					return $this->formula->render_template( (string) $value, $row_context );
 
 				case 'math_percent':
+					if ( null === $current_val || '' === $current_val ) {
+						return $current_val;
+					}
 					$base = (float) $current_val;
 					$pct  = (float) $value;
 					$calc = $base * ( 1.0 + ( $pct / 100.0 ) );
 					return $this->apply_rounding( $calc, (string) ( $rule['rounding'] ?? '2dec' ) );
 
 				case 'math_fixed':
+					if ( null === $current_val || '' === $current_val ) {
+						return $current_val;
+					}
 					$base = (float) $current_val;
 					$calc = $base + (float) $value;
 					return $this->apply_rounding( $calc, (string) ( $rule['rounding'] ?? '2dec' ) );
 
 				case 'round_ending':
+					if ( null === $current_val || '' === $current_val ) {
+						return $current_val;
+					}
 					$base   = (float) $current_val;
 					$ending = (float) ( $value ?? 0.99 );
 					return floor( $base ) + $ending;
@@ -507,17 +527,17 @@ final class BulkOperationEngine {
 					};
 
 				case 'taxonomy_add':
-					$cur_ids = $this->extract_ids( $current_val );
-					$add_ids = $this->extract_ids( $value );
+					$cur_ids = $this->extract_ids( $current_val, $taxonomy );
+					$add_ids = $this->extract_ids( $value, $taxonomy );
 					return array_values( array_unique( array_merge( $cur_ids, $add_ids ) ) );
 
 				case 'taxonomy_remove':
-					$cur_ids = $this->extract_ids( $current_val );
-					$rem_ids = $this->extract_ids( $value );
+					$cur_ids = $this->extract_ids( $current_val, $taxonomy );
+					$rem_ids = $this->extract_ids( $value, $taxonomy );
 					return array_values( array_diff( $cur_ids, $rem_ids ) );
 
 				case 'taxonomy_replace':
-					return $this->extract_ids( $value );
+					return $this->extract_ids( $value, $taxonomy );
 
 				case 'date_shift':
 					$days = (int) $value;
@@ -582,22 +602,38 @@ final class BulkOperationEngine {
 	}
 
 	/**
-	 * Extract integer IDs from term arrays or scalar values.
+	 * Extract integer term IDs from arrays, comma-separated IDs, or comma-separated term names/slugs.
 	 *
 	 * @return array<int, int>
 	 */
-	private function extract_ids( mixed $val ): array {
-		if ( ! is_array( $val ) ) {
-			return is_numeric( $val ) ? [ (int) $val ] : [];
-		}
+	private function extract_ids( mixed $val, string $taxonomy = '' ): array {
+		$items = is_array( $val )
+			? $val
+			: array_filter( array_map( 'trim', explode( ',', (string) $val ) ), static fn( string $s ): bool => '' !== $s );
+
 		$out = [];
-		foreach ( $val as $item ) {
+		foreach ( $items as $item ) {
 			if ( is_array( $item ) && isset( $item['id'] ) ) {
 				$out[] = (int) $item['id'];
 			} elseif ( is_numeric( $item ) ) {
 				$out[] = (int) $item;
+			} elseif ( '' !== $taxonomy && is_string( $item ) && function_exists( 'get_term_by' ) ) {
+				$term = get_term_by( 'name', $item, $taxonomy );
+				if ( ! $term instanceof \WP_Term ) {
+					$term = get_term_by( 'slug', sanitize_title( $item ), $taxonomy );
+				}
+				if ( $term instanceof \WP_Term ) {
+					$out[] = (int) $term->term_id;
+				}
 			}
 		}
 		return array_values( array_unique( array_filter( $out ) ) );
+	}
+
+	private function values_equal( mixed $a, mixed $b ): bool {
+		if ( is_numeric( $a ) && is_numeric( $b ) ) {
+			return abs( (float) $a - (float) $b ) < 0.00001;
+		}
+		return wp_json_encode( $a ) === wp_json_encode( $b );
 	}
 }

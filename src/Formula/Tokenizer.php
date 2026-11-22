@@ -84,9 +84,10 @@ final class Tokenizer {
 			}
 
 			// Identifiers, booleans, and field paths (e.g. regular_price, acf:brand, meta:_sku).
+			// Hyphens are intentionally excluded so expressions like "regular_price-sale_price" parse as subtraction.
 			if ( ctype_alpha( $ch ) || '_' === $ch ) {
 				$start = $i;
-				while ( $i < $length && ( ctype_alnum( $input[ $i ] ) || '_' === $input[ $i ] || ':' === $input[ $i ] || '-' === $input[ $i ] ) ) {
+				while ( $i < $length && ( ctype_alnum( $input[ $i ] ) || '_' === $input[ $i ] || ':' === $input[ $i ] ) ) {
 					++$i;
 				}
 				$word  = substr( $input, $start, $i - $start );

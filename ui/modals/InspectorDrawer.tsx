@@ -34,6 +34,15 @@ export default function InspectorDrawer( {
 	const [ loadingHistory, setLoadingHistory ] = useState( false );
 	const [ restoringId, setRestoringId ] = useState<number | null>( null );
 
+	useEffect( () => {
+		setLocalData( { ...record } );
+	}, [ record ] );
+
+	useEffect( () => {
+		setTab( initialTab );
+		setHistoryField( initialHistoryField );
+	}, [ record.id, initialTab, initialHistoryField ] );
+
 	const editableFields = useMemo(
 		() => fields.filter( ( f ) => f.editable && ! [ 'media', 'taxonomy' ].includes( f.type ) ),
 		[ fields ]

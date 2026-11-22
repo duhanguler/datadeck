@@ -73,7 +73,8 @@ final class SmartQueryPlanner {
 		QueryRequest $request,
 		array $post_types,
 		array $field_map,
-		array $statuses = [ 'publish', 'draft', 'pending', 'future', 'private' ]
+		array $statuses = [ 'publish', 'draft', 'pending', 'future', 'private' ],
+		int $after_id = 0
 	): array {
 		global $wpdb;
 
@@ -88,6 +89,12 @@ final class SmartQueryPlanner {
 		$pt_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 		$where_base[]    = "p.post_type IN ({$pt_placeholders})";
 		array_push( $params_base, ...$post_types );
+
+		// Keyset pagination cursor (placed outside user AND/OR filter group).
+		if ( $after_id > 0 ) {
+			$where_base[]  = 'p.ID > %d';
+			$params_base[] = $after_id;
+		}
 
 		// Parent ID filter (for inline WooCommerce variation expansion).
 		if ( $request->parent_id > 0 ) {
@@ -185,7 +192,7 @@ final class SmartQueryPlanner {
 					$term_ids = array_values( array_filter( $term_ids ) );
 					if ( ! empty( $term_ids ) ) {
 						$in               = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
-						$exists_kw        = 'isnot' === $op ? 'NOT EXISTS' : 'EXISTS';
+						$exists_kw        = in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) ? 'NOT EXISTS' : 'EXISTS';
 						$filter_clauses[] = "{$exists_kw} (SELECT 1 FROM {$wpdb->term_relationships} tr INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id WHERE tr.object_id = p.ID AND tt.taxonomy = %s AND tt.term_id IN ({$in}))";
 						$filter_params[]  = $tax;
 						array_push( $filter_params, ...$term_ids );
@@ -242,14 +249,16 @@ final class SmartQueryPlanner {
 			array_push( $params, ...$filter_params );
 		}
 
-		// ORDER BY resolution.
+		// ORDER BY resolution (MySQL 8 ONLY_FULL_GROUP_BY compliant via GROUP BY p.ID + aggregate on joined sort expressions).
 		$dir      = 'asc' === $request->sort_direction ? 'ASC' : 'DESC';
+		$agg_fn   = 'asc' === $request->sort_direction ? 'MIN' : 'MAX';
 		$order_by = "p.ID {$dir}";
 		$sort_def = $field_map[ $request->sort_field ] ?? null;
 
 		if ( $use_lookup && isset( self::WOO_LOOKUP_COLUMNS[ $request->sort_field ] ) ) {
 			$joins['woo_lookup'] = "LEFT JOIN {$wpdb->prefix}wc_product_meta_lookup AS wcl ON p.ID = wcl.product_id";
-			$order_by            = 'wcl.' . self::WOO_LOOKUP_COLUMNS[ $request->sort_field ] . " {$dir}, p.ID {$dir}";
+			$lookup_col          = 'wcl.' . self::WOO_LOOKUP_COLUMNS[ $request->sort_field ];
+			$order_by            = "{$agg_fn}({$lookup_col}) {$dir}, p.ID {$dir}";
 			$plan_parts[]        = 'woo-lookup-sort';
 		} elseif ( isset( self::POST_COLUMNS[ $request->sort_field ] ) ) {
 			$order_by = 'p.' . self::POST_COLUMNS[ $request->sort_field ] . " {$dir}, p.ID {$dir}";
@@ -260,15 +269,15 @@ final class SmartQueryPlanner {
 			);
 			$is_num          = in_array( $sort_def->type, [ 'number', 'currency', 'integer' ], true );
 			$sort_col        = $is_num ? 'CAST(pmsort.meta_value AS DECIMAL(18,4))' : 'pmsort.meta_value';
-			$order_by        = "{$sort_col} {$dir}, p.ID {$dir}";
+			$order_by        = "{$agg_fn}({$sort_col}) {$dir}, p.ID {$dir}";
 		}
 
 		$join_sql = implode( ' ', array_values( $joins ) );
 		$offset   = ( $request->page - 1 ) * $request->per_page;
 
-		// Step 1a: Fast DISTINCT ID query (no SQL_CALC_FOUND_ROWS).
+		// Step 1a: Fast grouped ID query (no SQL_CALC_FOUND_ROWS, MySQL 8 ONLY_FULL_GROUP_BY safe).
 		$id_params  = array_merge( $params, [ $request->per_page, $offset ] );
-		$id_sql_raw = "SELECT DISTINCT p.ID FROM {$wpdb->posts} AS p {$join_sql} WHERE {$where_sql} ORDER BY {$order_by} LIMIT %d OFFSET %d";
+		$id_sql_raw = "SELECT p.ID FROM {$wpdb->posts} AS p {$join_sql} WHERE {$where_sql} GROUP BY p.ID ORDER BY {$order_by} LIMIT %d OFFSET %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$id_sql = $wpdb->prepare( $id_sql_raw, ...$id_params );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -290,6 +299,7 @@ final class SmartQueryPlanner {
 
 	/**
 	 * Keyset-paginated ID fetcher (`p.ID > %d`) for O(1) memory streaming exports & bulk batches.
+	 * Preserves user AND/OR filter relations intact across every chunk.
 	 *
 	 * @param QueryRequest                   $request    Sanitized query request.
 	 * @param array<int, string>             $post_types Post types.
@@ -307,50 +317,22 @@ final class SmartQueryPlanner {
 		int $limit,
 		array $statuses = [ 'publish', 'draft', 'pending', 'future', 'private' ]
 	): array {
-		$augmented_filters = $request->filters;
-		if ( $after_id > 0 ) {
-			// Inject keyset cursor via direct ID > filter using a clean wrapper.
-			$cursor_request = new QueryRequest(
-				entity: $request->entity,
-				page: 1,
-				per_page: $limit,
-				search: $request->search,
-				sort_field: 'id',
-				sort_direction: 'asc',
-				filters: array_merge(
-					$augmented_filters,
-					[
-						[
-							'field'    => 'id',
-							'operator' => 'gt',
-							'value'    => $after_id,
-						],
-					]
-				),
-				filter_relation: 'AND',
-				fields: $request->fields,
-				lens: $request->lens,
-				parent_id: $request->parent_id,
-				flatten_variations: $request->flatten_variations,
-			);
-			return $this->query_post_ids( $cursor_request, $post_types, $field_map, $statuses )['ids'];
-		}
-
-		$first_request = new QueryRequest(
+		$stream_request = new QueryRequest(
 			entity: $request->entity,
 			page: 1,
 			per_page: $limit,
 			search: $request->search,
 			sort_field: 'id',
 			sort_direction: 'asc',
-			filters: $augmented_filters,
+			filters: $request->filters,
 			filter_relation: $request->filter_relation,
 			fields: $request->fields,
 			lens: $request->lens,
 			parent_id: $request->parent_id,
 			flatten_variations: $request->flatten_variations,
 		);
-		return $this->query_post_ids( $first_request, $post_types, $field_map, $statuses )['ids'];
+
+		return $this->query_post_ids( $stream_request, $post_types, $field_map, $statuses, $after_id )['ids'];
 	}
 
 	/**
@@ -365,11 +347,11 @@ final class SmartQueryPlanner {
 		$cast_val    = $is_numeric ? (float) $val : (string) $val;
 
 		return match ( $op ) {
-			'is'          => [
+			'is', 'equals'               => [
 				'sql'    => "{$col} = {$placeholder}",
 				'params' => [ $cast_val ],
 			],
-			'isnot'       => [
+			'isnot', 'is_not', 'not_equals' => [
 				'sql'    => "({$col} IS NULL OR {$col} <> {$placeholder})",
 				'params' => [ $cast_val ],
 			],

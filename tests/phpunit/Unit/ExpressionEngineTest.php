@@ -94,4 +94,14 @@ final class ExpressionEngineTest extends TestCase {
 		$this->assertSame( [], $this->engine->extract_variables( '10 + 20 * 3' ) );
 		$this->assertSame( [], $this->engine->extract_variables( 'invalid(((syntax' ) );
 	}
+
+	public function test_subtraction_without_spaces_around_hyphen(): void {
+		$ctx = [
+			'regular_price' => 100.0,
+			'sale_price'    => 75.0,
+		];
+		$this->assertEqualsWithDelta( 25.0, (float) $this->engine->evaluate( 'regular_price-sale_price', $ctx ), 1e-6 );
+		$this->assertEqualsWithDelta( 90.0, (float) $this->engine->evaluate( 'regular_price-10', $ctx ), 1e-6 );
+		$this->assertEqualsWithDelta( 89.99, (float) $this->engine->evaluate( 'round(regular_price*0.9-0.01,2)', $ctx ), 1e-6 );
+	}
 }

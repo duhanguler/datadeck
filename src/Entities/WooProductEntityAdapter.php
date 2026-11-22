@@ -104,14 +104,18 @@ final class WooProductEntityAdapter extends PostEntityAdapter {
 		$product->set_name( sanitize_text_field( (string) ( $data['title'] ?? __( 'New Product', 'datadeck' ) ) ) );
 		$product->set_status( sanitize_key( (string) ( $data['status'] ?? 'draft' ) ) );
 
-		if ( isset( $data['regular_price'] ) && '' !== (string) $data['regular_price'] ) {
-			$product->set_regular_price( (string) (float) $data['regular_price'] );
-		}
-		if ( isset( $data['sku'] ) && '' !== (string) $data['sku'] ) {
-			$product->set_sku( sanitize_text_field( (string) $data['sku'] ) );
-		}
+		try {
+			if ( isset( $data['regular_price'] ) && '' !== (string) $data['regular_price'] ) {
+				$product->set_regular_price( (string) max( 0.0, (float) $data['regular_price'] ) );
+			}
+			if ( isset( $data['sku'] ) && '' !== (string) $data['sku'] ) {
+				$product->set_sku( sanitize_text_field( (string) $data['sku'] ) );
+			}
 
-		$product_id = $product->save();
+			$product_id = $product->save();
+		} catch ( \WC_Data_Exception $e ) {
+			return new WP_Error( 'datadeck_wc_create_error', $e->getMessage(), [ 'status' => 400 ] );
+		}
 		if ( $product_id <= 0 ) {
 			return new WP_Error( 'datadeck_wc_create_failed', __( 'Failed to create product.', 'datadeck' ), [ 'status' => 500 ] );
 		}

@@ -88,9 +88,19 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 		);
 	}
 
+	/**
+	 * Stream matching attachment IDs cleanly using 'inherit' status (fixes 0-row Media export/bulk).
+	 */
 	public function stream_ids( QueryRequest $request, int $after_id, int $limit ): array {
-		$field_map = $this->fields->get_fields_for_entity( 'attachment' );
-		return $this->planner->stream_post_ids( $request, [ 'attachment' ], $field_map, $after_id, $limit, [ 'inherit' ] );
+		$field_map = $this->fields->get_fields_for_entity( 'attachment', false );
+		return $this->planner->stream_post_ids(
+			$request,
+			[ 'attachment' ],
+			$field_map,
+			$after_id,
+			$limit,
+			[ 'inherit' ]
+		);
 	}
 
 	public function duplicate_record( int $record_id ): WP_Error {

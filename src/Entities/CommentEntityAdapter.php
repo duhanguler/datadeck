@@ -164,16 +164,57 @@ final class CommentEntityAdapter implements EntityAdapterInterface {
 	public function stream_ids( QueryRequest $request, int $after_id, int $limit ): array {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT comment_ID FROM {$wpdb->comments} WHERE comment_ID > %d ORDER BY comment_ID ASC LIMIT %d",
-				$after_id,
-				max( 1, min( 1000, $limit ) )
-			)
-		);
+		$args = [
+			'fields'  => 'ids',
+			'number'  => max( 1, min( 1000, $limit ) ),
+			'orderby' => 'comment_ID',
+			'order'   => 'ASC',
+			'status'  => 'all',
+			'type'    => 'all',
+		];
 
-		return array_map( 'intval', is_array( $ids ) ? $ids : [] );
+		if ( '' !== $request->search ) {
+			$args['search'] = $request->search;
+		}
+
+		if ( 'comment_pending' === $request->lens ) {
+			$args['status'] = 'hold';
+		} elseif ( 'comment_reviews' === $request->lens ) {
+			$args['type'] = 'review';
+		} elseif ( 'comment_spam' === $request->lens ) {
+			$args['status'] = 'spam';
+		}
+
+		foreach ( $request->filters as $f ) {
+			$field = (string) ( $f['field'] ?? '' );
+			$op    = (string) ( $f['operator'] ?? '' );
+			$val   = (string) ( $f['value'] ?? '' );
+
+			if ( 'status' === $field && in_array( $op, [ 'is', 'equals' ], true ) && '' !== $val ) {
+				$args['status'] = sanitize_key( $val );
+			} elseif ( 'comment_type' === $field && in_array( $op, [ 'is', 'equals' ], true ) && '' !== $val ) {
+				$args['type'] = sanitize_key( $val );
+			} elseif ( 'post_id' === $field && in_array( $op, [ 'is', 'equals' ], true ) && is_numeric( $val ) ) {
+				$args['post_id'] = (int) $val;
+			}
+		}
+
+		$cursor_filter = static function ( array $clauses ) use ( $after_id, $wpdb ): array {
+			if ( $after_id > 0 ) {
+				$clauses['where'] .= $wpdb->prepare( " AND {$wpdb->comments}.comment_ID > %d", $after_id );
+			}
+			return $clauses;
+		};
+
+		add_filter( 'comments_clauses', $cursor_filter );
+		try {
+			$cq  = new WP_Comment_Query();
+			$ids = array_map( 'intval', (array) $cq->query( $args ) );
+		} finally {
+			remove_filter( 'comments_clauses', $cursor_filter );
+		}
+
+		return $ids;
 	}
 
 	public function hydrate_records( array $ids, array $field_ids ): array {

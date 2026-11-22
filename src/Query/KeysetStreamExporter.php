@@ -69,7 +69,7 @@ final class KeysetStreamExporter {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 			fwrite( $out, "\xEF\xBB\xBF" );
 			$headers = array_map( static fn( FieldDefinition $f ): string => $f->label, array_values( $fields ) );
-			fputcsv( $out, $headers );
+			fputcsv( $out, $headers, ',', '"', '' );
 		} else {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 			fwrite( $out, '[' );
@@ -92,7 +92,7 @@ final class KeysetStreamExporter {
 					foreach ( $field_ids as $fid ) {
 						$line[] = $this->format_csv_cell( $record[ $fid ] ?? '' );
 					}
-					fputcsv( $out, $line );
+					fputcsv( $out, $line, ',', '"', '' );
 				} else {
 					$row_out = [];
 					foreach ( $field_ids as $fid ) {

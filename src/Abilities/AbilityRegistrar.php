@@ -91,8 +91,13 @@ final class AbilityRegistrar {
 				],
 				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
 				'execute_callback'    => function ( array $input ): array|WP_Error {
+					$entity  = sanitize_key( (string) ( $input['entity'] ?? 'post' ) );
+					$adapter = $this->entities->get( $entity );
+					if ( ! $adapter || ! $adapter->can_read() ) {
+						return new WP_Error( 'datadeck_forbidden', __( 'Entity unavailable or forbidden.', 'datadeck' ) );
+					}
 					return $this->bulk->dry_run(
-						sanitize_key( (string) ( $input['entity'] ?? 'post' ) ),
+						$entity,
 						(array) ( $input['rule'] ?? [] ),
 						array_map( 'intval', (array) ( $input['ids'] ?? [] ) )
 					);
@@ -112,7 +117,7 @@ final class AbilityRegistrar {
 					],
 					'required'   => [ 'batch_uuid' ],
 				],
-				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
+				'permission_callback' => static fn(): bool => current_user_can( 'edit_others_posts' ) || current_user_can( 'manage_options' ),
 				'execute_callback'    => function ( array $input ): array|WP_Error {
 					return $this->history->rollback( sanitize_text_field( (string) ( $input['batch_uuid'] ?? '' ) ), false );
 				},

@@ -339,6 +339,12 @@ export default function CsvImportModal( {
 								) }
 							</div>
 
+							{ parsedRows.length > 500 && (
+								<div style={ { fontSize: '11.5px', color: 'var(--rc-ink-secondary)' } }>
+									{ `${ __( 'Dry-run analyzed the first 500 of', 'datadeck' ) } ${ parsedRows.length } ${ __( 'rows. Clicking Apply will import all rows in 50-row chunks.', 'datadeck' ) }` }
+								</div>
+							) }
+
 							<table className="rc-diff-table">
 								<thead>
 									<tr>

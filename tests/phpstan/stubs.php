@@ -36,6 +36,20 @@ if ( ! class_exists( 'WC_Data_Exception' ) ) {
 	class WC_Data_Exception extends \Exception {}
 }
 
+if ( ! function_exists( 'as_schedule_single_action' ) ) {
+	/**
+	 * @param array<int|string, mixed> $args
+	 */
+	function as_schedule_single_action( int $timestamp, string $hook, array $args = [], string $group = '' ): int { return 0; }
+}
+
+if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+	/**
+	 * @param array<int|string, mixed> $args
+	 */
+	function as_unschedule_all_actions( string $hook, array $args = [], string $group = '' ): void {}
+}
+
 if ( ! function_exists( 'wc_get_product' ) ) {
 	/**
 	 * @param mixed $the_product
