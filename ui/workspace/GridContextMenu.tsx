@@ -18,7 +18,7 @@ interface GridContextMenuProps {
 	onCopyValue: ( value: unknown ) => void;
 	onApplyToSelected: ( field: FieldDefinition, value: unknown ) => void;
 	onInspectHistory: ( record: RecordRow, fieldId: string ) => void;
-	onDuplicateRow: ( id: number ) => void;
+	onDuplicateRow?: ( id: number ) => void;
 	onClose: () => void;
 }
 
@@ -146,7 +146,7 @@ export function GridContextMenu( {
 				{ __( 'View cell audit history', 'datadeck' ) }
 			</button>
 
-			{ ! menu.record._isVariation && (
+			{ onDuplicateRow && ! menu.record._isVariation && (
 				<button
 					type="button"
 					role="menuitem"

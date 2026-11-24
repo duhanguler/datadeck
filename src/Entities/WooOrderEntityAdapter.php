@@ -100,8 +100,11 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 			$op  = (string) ( $f['operator'] ?? '' );
 			$val = $f['value'] ?? null;
 
-			if ( 'status' === $fid && 'is' === $op && ! empty( $val ) ) {
+			if ( 'status' === $fid && in_array( $op, [ 'is', 'equals' ], true ) && ! empty( $val ) ) {
 				$args['status'] = 'wc-' . str_replace( 'wc-', '', sanitize_key( (string) $val ) );
+			} elseif ( 'status' === $fid && in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) && ! empty( $val ) && function_exists( 'wc_get_order_statuses' ) ) {
+				$exclude        = 'wc-' . str_replace( 'wc-', '', sanitize_key( (string) $val ) );
+				$args['status'] = array_values( array_diff( array_keys( wc_get_order_statuses() ), [ $exclude ] ) );
 			} elseif ( 'billing_email' === $fid && ! empty( $val ) ) {
 				$args['billing_email'] = sanitize_email( (string) $val );
 			}
@@ -149,6 +152,9 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 
 			if ( 'status' === $fid && in_array( $op, [ 'is', 'equals' ], true ) && ! empty( $val ) ) {
 				$args['status'] = 'wc-' . str_replace( 'wc-', '', sanitize_key( (string) $val ) );
+			} elseif ( 'status' === $fid && in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) && ! empty( $val ) && function_exists( 'wc_get_order_statuses' ) ) {
+				$exclude        = 'wc-' . str_replace( 'wc-', '', sanitize_key( (string) $val ) );
+				$args['status'] = array_values( array_diff( array_keys( wc_get_order_statuses() ), [ $exclude ] ) );
 			} elseif ( 'billing_email' === $fid && ! empty( $val ) ) {
 				$args['billing_email'] = sanitize_email( (string) $val );
 			}
@@ -218,16 +224,24 @@ final class WooOrderEntityAdapter implements EntityAdapterInterface {
 		$deleted = [];
 		$errors  = [];
 		foreach ( $ids as $id ) {
-			$order = wc_get_order( (int) $id );
+			$oid = (int) $id;
+			if ( ! $this->can_delete( $oid ) ) {
+				$errors[] = [
+					'id'      => $oid,
+					'message' => __( 'Permission denied.', 'datadeck' ),
+				];
+				continue;
+			}
+			$order = wc_get_order( $oid );
 			if ( ! $order instanceof \WC_Order ) {
 				$errors[] = [
-					'id'      => (int) $id,
+					'id'      => $oid,
 					'message' => __( 'Order not found.', 'datadeck' ),
 				];
 				continue;
 			}
 			$order->delete( false );
-			$deleted[] = (int) $id;
+			$deleted[] = $oid;
 		}
 		return [
 			'deleted' => $deleted,

@@ -100,9 +100,18 @@ final class WooProductEntityAdapter extends PostEntityAdapter {
 			return parent::create_record( $data );
 		}
 
+		$status = sanitize_key( (string) ( $data['status'] ?? 'draft' ) );
+		if ( ! in_array( $status, [ 'publish', 'draft', 'pending', 'private' ], true ) ) {
+			$status = 'draft';
+		}
+		$pt_obj = get_post_type_object( 'product' );
+		if ( in_array( $status, [ 'publish', 'private' ], true ) && $pt_obj && ! current_user_can( $pt_obj->cap->publish_posts ) ) {
+			$status = 'draft';
+		}
+
 		$product = new \WC_Product_Simple();
 		$product->set_name( sanitize_text_field( (string) ( $data['title'] ?? __( 'New Product', 'datadeck' ) ) ) );
-		$product->set_status( sanitize_key( (string) ( $data['status'] ?? 'draft' ) ) );
+		$product->set_status( $status );
 
 		try {
 			if ( isset( $data['regular_price'] ) && '' !== (string) $data['regular_price'] ) {
@@ -128,5 +137,30 @@ final class WooProductEntityAdapter extends PostEntityAdapter {
 		}
 
 		return $product_id;
+	}
+
+	/**
+	 * Duplicate a WooCommerce product safely without cloning unique SKUs or historical sales stats,
+	 * and sync wc_product_meta_lookup immediately.
+	 */
+	public function duplicate_record( int $record_id ): int|WP_Error {
+		$new_id = parent::duplicate_record( $record_id );
+		if ( is_wp_error( $new_id ) ) {
+			return $new_id;
+		}
+
+		foreach ( [ '_sku', 'total_sales', '_wc_review_count', '_wc_average_rating', '_wc_rating_count' ] as $reset_key ) {
+			delete_post_meta( $new_id, $reset_key );
+		}
+
+		if ( function_exists( 'wc_get_product' ) ) {
+			$dup = wc_get_product( $new_id );
+			if ( $dup ) {
+				$dup->set_sku( '' );
+				$dup->save();
+			}
+		}
+
+		return $new_id;
 	}
 }

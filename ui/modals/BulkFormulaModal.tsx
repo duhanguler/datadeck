@@ -242,7 +242,20 @@ export default function BulkFormulaModal( {
 
 					<div className="rc-field-row">
 						<label>{ __( 'Operation', 'datadeck' ) }</label>
-						<select value={ action } onChange={ ( e ) => setAction( e.target.value ) }>
+						<select
+							value={ action }
+							onChange={ ( e ) => {
+								const nextAction = e.target.value;
+								setAction( nextAction );
+								if ( nextAction === 'case_transform' ) {
+									setValue( 'title' );
+								} else if ( nextAction === 'round_ending' ) {
+									setValue( '0.99' );
+								} else {
+									setValue( '' );
+								}
+							} }
+						>
 							{ ACTIONS.map( ( a ) => (
 								<option key={ a.value } value={ a.value }>
 									{ a.label }

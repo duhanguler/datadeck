@@ -166,7 +166,13 @@ final class BulkOperationEngine {
 			++$updated;
 		}
 
-		$this->history->finalize_batch_count( $batch['id'] );
+		$batch_uuid = $batch['uuid'];
+		if ( 0 === $updated ) {
+			$this->history->delete_batch_if_empty( $batch['id'] );
+			$batch_uuid = '';
+		} else {
+			$this->history->finalize_batch_count( $batch['id'] );
+		}
 
 		$modified_map   = [];
 		$is_post_entity = ! in_array( $entity_slug, [ 'user', 'shop_order', 'comment' ], true );
@@ -185,7 +191,7 @@ final class BulkOperationEngine {
 			'errors'      => $errors,
 			'conflicts'   => $conflicts,
 			'modifiedMap' => $modified_map,
-			'batchUuid'   => $batch['uuid'],
+			'batchUuid'   => $batch_uuid,
 		];
 	}
 
@@ -266,7 +272,7 @@ final class BulkOperationEngine {
 				'oldValue' => $old_val,
 				'newValue' => is_wp_error( $computed ) ? null : $computed,
 				'error'    => is_wp_error( $computed ) ? $computed->get_error_message() : null,
-				'changed'  => ! is_wp_error( $computed ) && $computed !== $old_val,
+				'changed'  => ! is_wp_error( $computed ) && ! $this->values_equal( $old_val, $computed ),
 			];
 		}
 
@@ -409,7 +415,13 @@ final class BulkOperationEngine {
 			++$updated;
 		}
 
-		$this->history->finalize_batch_count( $batch['id'] );
+		$returned_uuid = $batch['uuid'];
+		if ( 0 === $updated && ! $has_more && ( null === $batch_uuid || '' === $batch_uuid ) ) {
+			$this->history->delete_batch_if_empty( $batch['id'] );
+			$returned_uuid = '';
+		} else {
+			$this->history->finalize_batch_count( $batch['id'] );
+		}
 
 		$duration_ms = ( microtime( true ) - $start ) * 1000;
 		// Adaptive batch sizer: keeps every HTTP chunk comfortably under 1.5s.
@@ -421,7 +433,7 @@ final class BulkOperationEngine {
 		}
 
 		return [
-			'batchUuid'     => $batch['uuid'],
+			'batchUuid'     => $returned_uuid,
 			'processed'     => count( $chunk_ids ),
 			'updated'       => $updated,
 			'lastId'        => (int) max( $chunk_ids ),
@@ -489,7 +501,7 @@ final class BulkOperationEngine {
 						return $current_val;
 					}
 					$base   = (float) $current_val;
-					$ending = (float) ( $value ?? 0.99 );
+					$ending = ( null === $value || '' === trim( (string) $value ) ) ? 0.99 : (float) $value;
 					return floor( $base ) + $ending;
 
 				case 'prepend':

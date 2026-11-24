@@ -20,6 +20,29 @@ final class ExpressionEngine {
 
 	private const MAX_DEPTH = 32;
 
+	/**
+	 * Whitelisted pure formula functions validated at compile time.
+	 *
+	 * @var array<int, string>
+	 */
+	private const ALLOWED_FUNCTIONS = [
+		'if',
+		'round',
+		'ceil',
+		'floor',
+		'abs',
+		'min',
+		'max',
+		'concat',
+		'upper',
+		'lower',
+		'trim',
+		'replace',
+		'len',
+		'slugify',
+		'coalesce',
+	];
+
 	private Tokenizer $tokenizer;
 
 	/**
@@ -251,7 +274,7 @@ final class ExpressionEngine {
 		$rhs = $this->evaluate_ast( $right, $context );
 
 		return match ( $op ) {
-			'+'  => ( is_string( $lhs ) && ! is_numeric( $lhs ) ) || ( is_string( $rhs ) && ! is_numeric( $rhs ) )
+			'+'  => ( ( is_string( $lhs ) && '' !== $lhs && ! is_numeric( $lhs ) ) || ( is_string( $rhs ) && '' !== $rhs && ! is_numeric( $rhs ) ) )
 				? ( (string) $lhs . (string) $rhs )
 				: ( (float) $lhs + (float) $rhs ),
 			'-'  => (float) $lhs - (float) $rhs,
@@ -269,9 +292,18 @@ final class ExpressionEngine {
 	}
 
 	/**
-	 * Safe scalar equality handling numeric strings cleanly.
+	 * Safe scalar equality handling numeric strings and booleans cleanly.
 	 */
 	private function loosely_equal( mixed $a, mixed $b ): bool {
+		if ( is_bool( $a ) && is_bool( $b ) ) {
+			return $a === $b;
+		}
+		if ( is_bool( $a ) && is_numeric( $b ) ) {
+			return ( 0.0 !== (float) $b ) === $a;
+		}
+		if ( is_bool( $b ) && is_numeric( $a ) ) {
+			return ( 0.0 !== (float) $a ) === $b;
+		}
 		if ( is_numeric( $a ) && is_numeric( $b ) ) {
 			return abs( (float) $a - (float) $b ) < 1e-9;
 		}
@@ -553,10 +585,18 @@ final class ExpressionEngine {
 				if ( ! $this->match_type( Token::RPAREN ) ) {
 					throw new InvalidArgumentException( sprintf( 'Expected closing ")" for function %s().', esc_html( (string) $tok->value ) ) );
 				}
+				$fn_name  = (string) $tok->value;
+				$fn_lower = strtolower( $fn_name );
+				if ( ! in_array( $fn_lower, self::ALLOWED_FUNCTIONS, true ) ) {
+					throw new InvalidArgumentException( sprintf( 'Unknown formula function "%s()".', esc_html( $fn_name ) ) );
+				}
+				if ( 'if' === $fn_lower && ( count( $args ) < 2 || count( $args ) > 3 ) ) {
+					throw new InvalidArgumentException( 'if() expects 2 or 3 arguments.' );
+				}
 				--$this->depth;
 				return [
 					'kind' => 'call',
-					'name' => (string) $tok->value,
+					'name' => $fn_name,
 					'args' => $args,
 				];
 			}

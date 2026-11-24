@@ -4,6 +4,7 @@ import {
 	computeNumericAggregation,
 	generateFillSeries,
 	parseCsvClient,
+	parseLocaleNumber,
 } from '../../.tmp-js-test/series.js';
 
 test( 'generateFillSeries detects arithmetic progression for multi-seed numeric cells', () => {
@@ -43,4 +44,19 @@ test( 'parseCsvClient strips BOM, detects semicolons, and handles quoted commas/
 	assert.equal( parsed.rows.length, 2 );
 	assert.equal( parsed.rows[ 0 ].title, 'Desk, "Oak"' );
 	assert.equal( parsed.rows[ 1 ].title, 'Line 1\nLine 2' );
+} );
+
+test( 'parseLocaleNumber handles thousands separators, EU decimals, and rejects non-numeric text', () => {
+	assert.equal( parseLocaleNumber( '$1,250.00' ), 1250 );
+	assert.equal( parseLocaleNumber( '1.250,99 €' ), 1250.99 );
+	assert.equal( parseLocaleNumber( '49,90' ), 49.9 );
+	assert.equal( parseLocaleNumber( '1,250' ), 1250 );
+	assert.equal( parseLocaleNumber( 'Coffee' ), null );
+	assert.equal( parseLocaleNumber( 'SKU-001' ), null );
+
+	const agg = computeNumericAggregation( [ 'Coffee', 'SKU-001', '$1,250.00', '250.50' ] );
+	assert.equal( agg.numericCount, 2 );
+	assert.equal( agg.sum, 1500.5 );
+	assert.equal( agg.min, 250.5 );
+	assert.equal( agg.max, 1250 );
 } );

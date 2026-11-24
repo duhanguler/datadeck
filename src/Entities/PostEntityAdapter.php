@@ -90,14 +90,17 @@ class PostEntityAdapter implements EntityAdapterInterface {
 		}
 
 		$this->fields->set_include_options( false );
-		$planned = $this->planner->query_post_ids(
-			$request,
-			$this->get_query_post_types( $request ),
-			$field_map
-		);
+		try {
+			$planned = $this->planner->query_post_ids(
+				$request,
+				$this->get_query_post_types( $request ),
+				$field_map
+			);
 
-		$items = $this->hydrate_records( $planned['ids'], $projected );
-		$this->fields->set_include_options( true );
+			$items = $this->hydrate_records( $planned['ids'], $projected );
+		} finally {
+			$this->fields->set_include_options( true );
+		}
 		$total       = $planned['total'];
 		$total_pages = max( 1, (int) ceil( $total / $request->per_page ) );
 
@@ -114,7 +117,7 @@ class PostEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function stream_ids( QueryRequest $request, int $after_id, int $limit ): array {
-		$field_map = $this->fields->get_fields_for_entity( $this->get_slug() );
+		$field_map = $this->fields->get_fields_for_entity( $this->get_slug(), false );
 		return $this->planner->stream_post_ids(
 			$request,
 			$this->get_query_post_types( $request ),
@@ -172,6 +175,10 @@ class PostEntityAdapter implements EntityAdapterInterface {
 		$title  = sanitize_text_field( (string) ( $data['title'] ?? __( 'Untitled', 'datadeck' ) ) );
 		$status = sanitize_key( (string) ( $data['status'] ?? 'draft' ) );
 		if ( ! in_array( $status, [ 'publish', 'draft', 'pending', 'private' ], true ) ) {
+			$status = 'draft';
+		}
+		$pt_obj = get_post_type_object( $this->post_type );
+		if ( in_array( $status, [ 'publish', 'private' ], true ) && $pt_obj && ! current_user_can( $pt_obj->cap->publish_posts ) ) {
 			$status = 'draft';
 		}
 

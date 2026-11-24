@@ -148,7 +148,16 @@ export function FilterBar( { fields, filters, relation, onChange }: FilterBarPro
 							) ) }
 						</select>
 
-						{ ! isUnary && field && ( field.type === 'select' || field.type === 'taxonomy' ) && field.options.length > 0 ? (
+						{ ! isUnary && field && field.type === 'boolean' ? (
+							<select
+								value={ clause.value }
+								onChange={ ( e ) => updateClause( clause.id, { value: e.target.value } ) }
+							>
+								<option value="">{ __( 'Select…', 'datadeck' ) }</option>
+								<option value="true">{ __( 'Yes (True)', 'datadeck' ) }</option>
+								<option value="false">{ __( 'No (False)', 'datadeck' ) }</option>
+							</select>
+						) : ! isUnary && field && ( field.type === 'select' || field.type === 'taxonomy' ) && field.options.length > 0 ? (
 							<select
 								value={ clause.value }
 								onChange={ ( e ) => updateClause( clause.id, { value: e.target.value } ) }

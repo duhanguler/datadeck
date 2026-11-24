@@ -2,6 +2,22 @@
 
 All notable changes to DataDeck are documented in this file.
 
+## [1.1.2] - 2026-11-24
+
+### Security
+- **Order Deletion Capability Enforcement:** Enforced `delete_shop_orders` (`can_delete()`) inside `WooOrderEntityAdapter::delete_records()`.
+- **Create-Record Publish Guard:** Enforced `$pt_obj->cap->publish_posts` and status whitelisting in `PostEntityAdapter::create_record()` and `WooProductEntityAdapter::create_record()` so Contributors cannot publish directly on creation or CSV import.
+- **Multi-Author Visibility Scoping:** Restricted `SmartQueryPlanner` for authenticated non-editor sessions so Contributors cannot read other authors' `private` posts or unpublished drafts.
+- **Record History & Comments Hardening:** Enforced object-level read/edit checks on `GET /history/record/{entity}/{id}` and `GET /records/{entity}/{id}`, required `moderate_comments` for the Comments grid, verified `$adapter->can_read()` before injecting native list toggle pills, and enforced `promote_user` + `get_editable_roles()` on user role edits.
+- **Scheduled Campaign Race & Owner Guard:** Atomically claimed `scheduled` -> `running` in `CampaignScheduler::run_campaign()` to prevent duplicate execution under overlapping cron/Action Scheduler runs, refused capability bypass when the scheduling user was deleted, restricted `revertAt` in `bulk` mode to elevated roles with UTC normalization + event scheduling, and guarded `revert_campaign()`/`HistoryService::rollback()` against non-applied batches.
+
+### Fixed
+- **WooCommerce Pricing Filters & Audit Lens Accuracy:** Fixed `sale_price`/`regular_price` filters and `woo_margin_audit` lens false positives caused by `wc_product_meta_lookup.min_price`/`max_price` holding effective `_price` on simple products.
+- **SQL & Meta Query Accuracy:** Included `wcl.sku` in numeric searches (EAN/UPC barcodes), fixed numeric `isempty`/`isnotempty` (`0 = ''` in MySQL), prevented empty postmeta strings casting to `0.0000`, added native boolean meta filter handling (`_manage_stock`, SEO noindex, ACF `true_false`) + `Yes/No` selector in `FilterBar`, added `rating` to Comment `stream_ids()`, and added `isnot` exclusion on Order statuses and User roles.
+- **WooCommerce, Meta & Import Integrity:** Preserved `onbackorder` status when `stock_quantity` reaches `0` with backorders enabled, cleared unique `_sku` & sales/rating stats on duplicated WooCommerce products, resolved numeric/slug taxonomy strings in `WooProductFieldProvider`, prevented `sanitize_email()` from wiping existing emails on invalid input, validated order statuses against `wc_get_order_statuses()`, refreshed `WC_Comments` rating transients, guarded `NativeMetaFieldProvider` against overwriting serialized PHP arrays/objects, fixed HPOS `shop_order` ID matching in `CsvImportEngine`, added WP-CLI capability bypass to `wp datadeck import` & `list_available()` to `wp datadeck status`, and removed empty 0-row history batches.
+- **History, Sync, AST & Platform:** Preserved applied batches with future `revert_at` during daily pruning, prevented partial rollback failures from permanently locking the original batch, enforced compile-time function whitelist & `if()` arity checks in `ExpressionEngine`, fixed empty-string `+` addition and `false == 0` equality, prevented custom computed column collisions with built-in IDs, normalized Saved View IDs/JSON sync payloads, booted Abilities API on `/wp-json/wp-abilities/` requests, and fixed Plain Permalink CSV/JSON export URLs.
+- **Spreadsheet Grid & Modal UX:** Fixed locale currency parsing (`$1,250.00`, `1.250,99`) across inline edits, TSV paste, and live aggregations (no longer counting text strings as `0`/`-1`); handled WordPress Media Modal `close` event so cancelled picks don't freeze keyboard navigation; added single-commit ref guard on `Enter`/`Tab`/`Escape` + `onBlur`; added `multiselect` cell support; hydrated full records via `GET /records/{entity}/{id}` inside `InspectorDrawer`; initialized `case_transform`/`round_ending` bulk defaults; auto-refreshed visible computed columns after inline save; fixed `expandedParents` in right-click apply, entity switch sort reset, multiline CSV analyze sampling, >500-row import apply button, and async error toasts.
+
 ## [1.1.1] - 2026-11-22
 
 ### Security

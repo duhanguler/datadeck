@@ -258,13 +258,20 @@ export function App() {
 						`${ res.updated } ${ __( 'change(s) saved', 'datadeck' ) }`,
 						res.batchUuid || undefined
 					);
+					const hasComputedVisible = visibleFieldDefs.some( ( f ) => Boolean( f.extra?.computed ) );
+					const hasSideEffectField = nonConflicted.some( ( e ) =>
+						[ 'stock_quantity', 'slug', 'status' ].includes( e.fieldId )
+					);
+					if ( hasComputedVisible || hasSideEffectField ) {
+						reloadRecords();
+					}
 				}
 			} catch ( err ) {
 				dispatch.setCommitting( false );
 				showToast( err instanceof Error ? err.message : __( 'Save failed', 'datadeck' ) );
 			}
 		},
-		[ state.entity, state.records, state.expandedParents, dispatch, showToast ]
+		[ state.entity, state.records, state.expandedParents, visibleFieldDefs, dispatch, showToast, reloadRecords ]
 	);
 
 	const handleStageOrSave = useCallback(
@@ -316,21 +323,25 @@ export function App() {
 				dispatch.setExpandedVariations( parentId, null );
 				return;
 			}
-			const res = await fetchRecords(
-				state.entity,
-				{
-					page: 1,
-					per_page: 100,
-					parent_id: parentId,
-					fields: state.visibleColumns,
-					sort_field: 'id',
-					sort_direction: 'asc',
-				},
-				false
-			);
-			dispatch.setExpandedVariations( parentId, res.items );
+			try {
+				const res = await fetchRecords(
+					state.entity,
+					{
+						page: 1,
+						per_page: 100,
+						parent_id: parentId,
+						fields: state.visibleColumns,
+						sort_field: 'id',
+						sort_direction: 'asc',
+					},
+					false
+				);
+				dispatch.setExpandedVariations( parentId, res.items );
+			} catch ( err ) {
+				showToast( err instanceof Error ? err.message : __( 'Failed to load variations', 'datadeck' ) );
+			}
 		},
-		[ state.entity, state.expandedParents, state.visibleColumns, dispatch ]
+		[ state.entity, state.expandedParents, state.visibleColumns, dispatch, showToast ]
 	);
 
 	const handleQuickCreate = async ( e: React.FormEvent ) => {
@@ -347,18 +358,26 @@ export function App() {
 				payload.sku = quickSku.trim();
 			}
 		}
-		const res = await createRecord( state.entity, payload );
-		dispatch.prependRecord( res.record );
-		setQuickTitle( '' );
-		setQuickPrice( '' );
-		setQuickSku( '' );
-		showToast( `${ __( 'Created', 'datadeck' ) } #${ res.id }` );
+		try {
+			const res = await createRecord( state.entity, payload );
+			dispatch.prependRecord( res.record );
+			setQuickTitle( '' );
+			setQuickPrice( '' );
+			setQuickSku( '' );
+			showToast( `${ __( 'Created', 'datadeck' ) } #${ res.id }` );
+		} catch ( err ) {
+			showToast( err instanceof Error ? err.message : __( 'Failed to create record', 'datadeck' ) );
+		}
 	};
 
 	const handleDuplicate = async ( id: number ) => {
-		const res = await duplicateRecord( state.entity, id );
-		dispatch.prependRecord( res.record );
-		showToast( `${ __( 'Duplicated as', 'datadeck' ) } #${ res.id }` );
+		try {
+			const res = await duplicateRecord( state.entity, id );
+			dispatch.prependRecord( res.record );
+			showToast( `${ __( 'Duplicated as', 'datadeck' ) } #${ res.id }` );
+		} catch ( err ) {
+			showToast( err instanceof Error ? err.message : __( 'Failed to duplicate record', 'datadeck' ) );
+		}
 	};
 
 	const handleDeleteSelected = async () => {
@@ -368,10 +387,18 @@ export function App() {
 		if ( ! window.confirm( `${ __( 'Move', 'datadeck' ) } ${ selectedIdList.length } ${ __( 'item(s) to trash?', 'datadeck' ) }` ) ) {
 			return;
 		}
-		const res = await deleteRecords( state.entity, selectedIdList );
-		dispatch.clearSelection();
-		reloadRecords();
-		showToast( `${ res.deleted.length } ${ __( 'item(s) moved to trash', 'datadeck' ) }` );
+		try {
+			const res = await deleteRecords( state.entity, selectedIdList );
+			dispatch.clearSelection();
+			reloadRecords();
+			if ( res.deleted.length > 0 ) {
+				showToast( `${ res.deleted.length } ${ __( 'item(s) moved to trash', 'datadeck' ) }` );
+			} else if ( res.errors.length > 0 ) {
+				showToast( res.errors[ 0 ].message );
+			}
+		} catch ( err ) {
+			showToast( err instanceof Error ? err.message : __( 'Delete failed', 'datadeck' ) );
+		}
 	};
 
 	const handleDensityChange = ( d: DensityMode ) => {
@@ -795,7 +822,7 @@ export function App() {
 				onStageOrSaveEdits={ handleStageOrSave }
 				onToggleVariations={ handleToggleVariations }
 				onInspectRow={ ( row ) => setInspectRecord( { record: row, tab: 'edit' } ) }
-				onDuplicateRow={ handleDuplicate }
+				onDuplicateRow={ state.entityMeta?.canCreate ? handleDuplicate : undefined }
 				onOpenContextMenu={ ( menu ) => setContextMenu( menu ) }
 			/>
 
@@ -979,6 +1006,11 @@ export function App() {
 						state.records.forEach( ( r ) => {
 							byId[ r.id ] = r;
 						} );
+						Object.values( state.expandedParents ).forEach( ( children ) => {
+							children.forEach( ( c ) => {
+								byId[ c.id ] = c;
+							} );
+						} );
 						const edits: StagedEdit[] = selectedIdList
 							.filter( ( id ) => byId[ id ] && byId[ id ]._canEdit !== false )
 							.map( ( id ) => ( {
@@ -995,7 +1027,7 @@ export function App() {
 					onInspectHistory={ ( record, fieldId ) =>
 						setInspectRecord( { record, tab: 'history', field: fieldId } )
 					}
-					onDuplicateRow={ handleDuplicate }
+					onDuplicateRow={ state.entityMeta?.canCreate ? handleDuplicate : undefined }
 					onClose={ () => setContextMenu( null ) }
 				/>
 			) }
@@ -1013,9 +1045,13 @@ export function App() {
 									return;
 								}
 								dispatch.setToast( null );
-								const res = await rollbackBatch( uuid );
-								reloadRecords();
-								showToast( `${ res.restored } ${ __( 'record(s) restored', 'datadeck' ) }` );
+								try {
+									const res = await rollbackBatch( uuid );
+									reloadRecords();
+									showToast( `${ res.restored } ${ __( 'record(s) restored', 'datadeck' ) }` );
+								} catch ( err ) {
+									showToast( err instanceof Error ? err.message : __( 'Rollback failed', 'datadeck' ) );
+								}
 							} }
 						>
 							{ __( 'Rollback', 'datadeck' ) }

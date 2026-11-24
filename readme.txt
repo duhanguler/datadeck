@@ -4,7 +4,7 @@ Tags: admin columns, bulk edit, inline edit, spreadsheet, custom fields
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,12 @@ Yes! Run `wp datadeck status`, `wp datadeck benchmark product`, `wp datadeck bul
 5. Media Library Missing Alt Text Audit Lens for rapid accessibility updates.
 
 == Changelog ==
+
+= 1.1.2 =
+* Security hardening: enforced `delete_shop_orders` on order deletion, `publish_posts` downgrade on record creation, multi-author private/draft post visibility scoping, object-level permission checks on single-record history/inspector, `moderate_comments` on Comments grid, `promote_user` + `get_editable_roles()` on user role edits, and atomic `scheduled -> running` claim with deleted-owner protection on scheduled campaigns.
+* Fixed WooCommerce `sale_price` / `regular_price` filters and `woo_margin_audit` lens false positives (previously confused with lookup `min_price`/`max_price`), numeric SKU/barcode search, MySQL numeric `isempty` (`0 = ''`) & empty-string meta casts, boolean meta filters, `onbackorder` status preservation, WooCommerce product duplicate SKU/stats cleanup, invalid email wipe prevention, HPOS CSV import matching, and Plain Permalink export URLs.
+* Fixed AST compile-time function whitelist & `if()` arity validation, empty-string `+` addition, history pruning of pending auto-revert batches, partial rollback lockout, and Abilities API loading on pretty-permalink REST routes.
+* Frontend fixes: locale currency parsing (`$1,250.00` / `1.250,99`) in inline edit, paste, and aggregation bar; Media Picker cancel unlocking keyboard navigation; single-commit guard on Enter/Tab/Escape; full-record hydration in Inspector Drawer; `case_transform`/`round_ending` bulk defaults; live computed column refresh after inline edits; and multiline CSV analyze sampling.
 
 = 1.1.1 =
 * Security hardening across scheduled campaigns, audit history access control, global views/computed columns, post publish/author capability guards, and Abilities API checks.

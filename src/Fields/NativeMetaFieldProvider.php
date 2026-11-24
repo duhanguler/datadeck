@@ -111,6 +111,14 @@ final class NativeMetaFieldProvider implements FieldProviderInterface {
 			return new WP_Error( 'datadeck_protected_meta', __( 'You do not have permission to edit protected metadata.', 'datadeck' ), [ 'status' => 403 ] );
 		}
 
+		// Guard against corrupting structured PHP arrays/objects stored by third-party plugins.
+		$existing = 'user' === $entity_slug
+			? get_user_meta( $record_id, $meta_key, true )
+			: get_post_meta( $record_id, $meta_key, true );
+		if ( ( is_array( $existing ) || is_object( $existing ) ) && ! is_array( $value ) ) {
+			return new WP_Error( 'datadeck_structured_meta', __( 'Structured serialized metadata cannot be overwritten with a plain text value.', 'datadeck' ), [ 'status' => 400 ] );
+		}
+
 		$clean = match ( $field->type ) {
 			'boolean' => filter_var( $value, FILTER_VALIDATE_BOOLEAN ) ? '1' : '0',
 			'integer' => '' === (string) $value ? '' : (int) $value,

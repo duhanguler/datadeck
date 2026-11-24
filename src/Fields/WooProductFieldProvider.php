@@ -331,14 +331,20 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 
 	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		if ( 'taxonomy' === $field->type && '' !== $field->taxonomy ) {
-			$term_ids = [];
-			if ( is_array( $value ) ) {
-				foreach ( $value as $item ) {
-					$term_ids[] = is_array( $item ) ? (int) ( $item['id'] ?? 0 ) : (int) $item;
-				}
-			} elseif ( is_string( $value ) && '' !== $value ) {
-				foreach ( array_map( 'trim', explode( ',', $value ) ) as $name ) {
-					$term = get_term_by( 'name', $name, $field->taxonomy );
+			$raw_items = is_array( $value )
+				? $value
+				: array_filter( array_map( 'trim', explode( ',', (string) $value ) ), static fn( string $s ): bool => '' !== $s );
+			$term_ids  = [];
+			foreach ( $raw_items as $item ) {
+				if ( is_array( $item ) && isset( $item['id'] ) ) {
+					$term_ids[] = (int) $item['id'];
+				} elseif ( is_numeric( $item ) ) {
+					$term_ids[] = (int) $item;
+				} elseif ( is_string( $item ) && '' !== $item ) {
+					$term = get_term_by( 'name', $item, $field->taxonomy );
+					if ( ! $term instanceof \WP_Term ) {
+						$term = get_term_by( 'slug', sanitize_title( $item ), $field->taxonomy );
+					}
 					if ( $term instanceof \WP_Term ) {
 						$term_ids[] = $term->term_id;
 					}
@@ -392,7 +398,14 @@ final class WooProductFieldProvider implements FieldProviderInterface {
 						$qty = (int) $value;
 						$product->set_manage_stock( true );
 						$product->set_stock_quantity( $qty );
-						$product->set_stock_status( $qty > 0 ? 'instock' : 'outofstock' );
+						$backorders = $product->get_backorders();
+						if ( $qty > 0 ) {
+							$product->set_stock_status( 'instock' );
+						} elseif ( 'yes' === $backorders || 'notify' === $backorders ) {
+							$product->set_stock_status( 'onbackorder' );
+						} else {
+							$product->set_stock_status( 'outofstock' );
+						}
 					}
 					break;
 				case 'manage_stock':

@@ -5,6 +5,7 @@ import { copy, drawerRight, external } from '@wordpress/icons';
 import { Icon } from '@wordpress/components';
 import { STORE_NAME } from '../store';
 import type { FieldDefinition, MediaValue, RecordRow, TermValue } from '../types';
+import { parseLocaleNumber } from '../utils/series';
 
 interface InlineCellProps {
 	record: RecordRow;
@@ -125,20 +126,33 @@ export const InlineCell = memo( function InlineCell( {
 	const [ draft, setDraft ] = useState<string>( '' );
 	const [ popoverPos, setPopoverPos ] = useState<{ top: number; left: number } | null>( null );
 	const [ selectedTermIds, setSelectedTermIds ] = useState<number[]>( [] );
+	const [ selectedMultiVals, setSelectedMultiVals ] = useState<string[]>( [] );
 	const cellRef = useRef<HTMLDivElement>( null );
 	const inputRef = useRef<HTMLInputElement | HTMLSelectElement>( null );
+	const committedRef = useRef<boolean>( false );
 
 	useEffect( () => {
 		if ( ! isEditing ) {
 			setPopoverPos( null );
+			committedRef.current = false;
 			return;
 		}
+		committedRef.current = false;
 
-		if ( field.type === 'taxonomy' ) {
-			const ids = Array.isArray( rawValue )
-				? rawValue.map( ( t ) => ( typeof t === 'object' && t && 'id' in t ? Number( ( t as TermValue ).id ) : Number( t ) ) ).filter( Boolean )
-				: [];
-			setSelectedTermIds( ids );
+		if ( field.type === 'taxonomy' || field.type === 'multiselect' ) {
+			if ( field.type === 'taxonomy' ) {
+				const ids = Array.isArray( rawValue )
+					? rawValue.map( ( t ) => ( typeof t === 'object' && t && 'id' in t ? Number( ( t as TermValue ).id ) : Number( t ) ) ).filter( Boolean )
+					: [];
+				setSelectedTermIds( ids );
+			} else {
+				const vals = Array.isArray( rawValue )
+					? rawValue.map( String )
+					: typeof rawValue === 'string' && rawValue.trim() !== ''
+					? rawValue.split( ',' ).map( ( s ) => s.trim() ).filter( Boolean )
+					: [];
+				setSelectedMultiVals( vals );
+			}
 			if ( cellRef.current ) {
 				const rect = cellRef.current.getBoundingClientRect();
 				setPopoverPos( {
@@ -152,12 +166,14 @@ export const InlineCell = memo( function InlineCell( {
 		if ( field.type === 'media' ) {
 			const wpMedia = window.wp?.media;
 			if ( wpMedia ) {
+				let didSelect = false;
 				const frame = wpMedia( {
 					title: __( 'Select Media', 'datadeck' ),
 					button: { text: __( 'Use Selected', 'datadeck' ) },
 					multiple: false,
 				} );
 				frame.on( 'select', () => {
+					didSelect = true;
 					const sel = frame.state().get( 'selection' ).first().toJSON();
 					const sizes = sel.sizes as Record<string, { url?: string }> | undefined;
 					onCommitEdit( {
@@ -166,6 +182,11 @@ export const InlineCell = memo( function InlineCell( {
 						alt: String( sel.alt || '' ),
 						filename: String( sel.filename || '' ),
 					} );
+				} );
+				frame.on( 'close', () => {
+					if ( ! didSelect ) {
+						onCancelEdit();
+					}
 				} );
 				frame.open();
 			} else {
@@ -203,37 +224,53 @@ export const InlineCell = memo( function InlineCell( {
 			if ( trimmed === '' ) {
 				return null;
 			}
-			const parsed = Number( trimmed.replace( ',', '.' ) );
-			return Number.isNaN( parsed ) ? trimmed : parsed;
+			const parsed = parseLocaleNumber( trimmed );
+			return parsed === null ? trimmed : parsed;
 		}
 		if ( field.type === 'integer' ) {
 			const trimmed = text.trim();
 			if ( trimmed === '' ) {
 				return null;
 			}
-			const parsed = parseInt( trimmed, 10 );
-			return Number.isNaN( parsed ) ? trimmed : parsed;
+			const parsed = parseLocaleNumber( trimmed );
+			return parsed === null ? trimmed : Math.trunc( parsed );
 		}
 		return text;
+	};
+
+	const safeCommit = ( val: unknown, move?: 'next-col' | 'prev-col' | 'next-row' | 'prev-row' ) => {
+		if ( committedRef.current ) {
+			return;
+		}
+		committedRef.current = true;
+		onCommitEdit( val, move );
+	};
+
+	const safeCancel = () => {
+		if ( committedRef.current ) {
+			return;
+		}
+		committedRef.current = true;
+		onCancelEdit();
 	};
 
 	const handleInputKeyDown = ( e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement> ) => {
 		if ( e.key === 'Escape' ) {
 			e.preventDefault();
 			e.stopPropagation();
-			onCancelEdit();
+			safeCancel();
 			return;
 		}
 		if ( e.key === 'Enter' ) {
 			e.preventDefault();
 			e.stopPropagation();
-			onCommitEdit( coerceDraft( draft ), e.shiftKey ? 'prev-row' : 'next-row' );
+			safeCommit( coerceDraft( draft ), e.shiftKey ? 'prev-row' : 'next-row' );
 			return;
 		}
 		if ( e.key === 'Tab' ) {
 			e.preventDefault();
 			e.stopPropagation();
-			onCommitEdit( coerceDraft( draft ), e.shiftKey ? 'prev-col' : 'next-col' );
+			safeCommit( coerceDraft( draft ), e.shiftKey ? 'prev-col' : 'next-col' );
 		}
 	};
 
@@ -308,8 +345,12 @@ export const InlineCell = memo( function InlineCell( {
 			);
 		}
 
-		if ( field.type === 'taxonomy' ) {
-			const terms = Array.isArray( rawValue ) ? rawValue : [];
+		if ( field.type === 'taxonomy' || field.type === 'multiselect' ) {
+			const terms = Array.isArray( rawValue )
+				? rawValue
+				: typeof rawValue === 'string' && rawValue.trim() !== ''
+				? rawValue.split( ',' ).map( ( s ) => s.trim() ).filter( Boolean )
+				: [];
 			if ( terms.length === 0 ) {
 				return <span className="rc-cell-muted">—</span>;
 			}
@@ -432,9 +473,9 @@ export const InlineCell = memo( function InlineCell( {
 					value={ draft }
 					onChange={ ( e ) => {
 						setDraft( e.target.value );
-						onCommitEdit( e.target.value );
+						safeCommit( e.target.value );
 					} }
-					onBlur={ () => onCancelEdit() }
+					onBlur={ () => safeCancel() }
 					onKeyDown={ handleInputKeyDown }
 				>
 					{ field.options.map( ( opt ) => (
@@ -446,38 +487,58 @@ export const InlineCell = memo( function InlineCell( {
 			);
 		}
 
-		if ( field.type === 'taxonomy' && popoverPos ) {
-			const commitTerms = () => {
-				const mapped: TermValue[] = selectedTermIds.map( ( id ) => {
-					const opt = field.options.find( ( o ) => Number( o.value ) === id );
-					return { id, label: opt?.label || String( id ), slug: '' };
-				} );
-				onCommitEdit( mapped );
+		if ( ( field.type === 'taxonomy' || field.type === 'multiselect' ) && popoverPos ) {
+			const commitPopover = () => {
+				if ( field.type === 'taxonomy' ) {
+					const mapped: TermValue[] = selectedTermIds.map( ( id ) => {
+						const opt = field.options.find( ( o ) => Number( o.value ) === id );
+						return { id, label: opt?.label || String( id ), slug: '' };
+					} );
+					safeCommit( mapped );
+				} else {
+					safeCommit( selectedMultiVals );
+				}
 			};
 			return (
 				<div
 					className="rc-popover"
 					style={ { top: popoverPos.top, left: popoverPos.left } }
 					onClick={ ( e ) => e.stopPropagation() }
+					onKeyDown={ ( e ) => {
+						if ( e.key === 'Escape' ) {
+							e.preventDefault();
+							e.stopPropagation();
+							safeCancel();
+						}
+					} }
 				>
 					<div className="rc-popover-list">
 						{ field.options.length === 0 ? (
 							<div style={ { padding: '8px', fontSize: '12px', color: 'var(--rc-ink-muted)' } }>
-								{ __( 'No terms available.', 'datadeck' ) }
+								{ __( 'No options available.', 'datadeck' ) }
 							</div>
 						) : (
 							field.options.map( ( opt ) => {
+								const isTax = field.type === 'taxonomy';
 								const tid = Number( opt.value );
-								const checked = selectedTermIds.includes( tid );
+								const checked = isTax
+									? selectedTermIds.includes( tid )
+									: selectedMultiVals.includes( opt.value );
 								return (
 									<label key={ opt.value } className="rc-popover-opt">
 										<input
 											type="checkbox"
 											checked={ checked }
 											onChange={ () => {
-												setSelectedTermIds( ( prev ) =>
-													checked ? prev.filter( ( x ) => x !== tid ) : [ ...prev, tid ]
-												);
+												if ( isTax ) {
+													setSelectedTermIds( ( prev ) =>
+														checked ? prev.filter( ( x ) => x !== tid ) : [ ...prev, tid ]
+													);
+												} else {
+													setSelectedMultiVals( ( prev ) =>
+														checked ? prev.filter( ( x ) => x !== opt.value ) : [ ...prev, opt.value ]
+													);
+												}
 											} }
 										/>
 										<span>{ opt.label }</span>
@@ -487,10 +548,10 @@ export const InlineCell = memo( function InlineCell( {
 						) }
 					</div>
 					<div className="rc-modal-footer" style={ { padding: '6px 8px' } }>
-						<button type="button" className="rc-btn rc-btn--ghost" onClick={ onCancelEdit }>
+						<button type="button" className="rc-btn rc-btn--ghost" onClick={ safeCancel }>
 							{ __( 'Cancel', 'datadeck' ) }
 						</button>
-						<button type="button" className="rc-btn rc-btn--primary" onClick={ commitTerms }>
+						<button type="button" className="rc-btn rc-btn--primary" onClick={ commitPopover }>
 							{ __( 'Apply', 'datadeck' ) }
 						</button>
 					</div>
@@ -509,7 +570,7 @@ export const InlineCell = memo( function InlineCell( {
 				type={ field.type === 'date' ? 'date' : 'text' }
 				value={ draft }
 				onChange={ ( e ) => setDraft( e.target.value ) }
-				onBlur={ () => onCommitEdit( coerceDraft( draft ) ) }
+				onBlur={ () => safeCommit( coerceDraft( draft ) ) }
 				onKeyDown={ handleInputKeyDown }
 			/>
 		);
@@ -539,7 +600,7 @@ export const InlineCell = memo( function InlineCell( {
 		>
 			{ renderDisplay() }
 			{ renderEditor() }
-			{ isFocused && ! isEditing && canEdit && onStartFillDrag && ! [ 'media', 'taxonomy' ].includes( field.type ) && (
+			{ isFocused && ! isEditing && canEdit && onStartFillDrag && ! [ 'media', 'taxonomy', 'multiselect' ].includes( field.type ) && (
 				<span
 					className="rc-fill-handle"
 					title={ __( 'Drag down to fill series', 'datadeck' ) }

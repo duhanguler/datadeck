@@ -56,7 +56,7 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 		$start_time    = microtime( true );
 		$start_queries = (int) $wpdb->num_queries;
 
-		$field_map = $this->fields->get_fields_for_entity( 'attachment' );
+		$field_map = $this->fields->get_fields_for_entity( 'attachment', false );
 		$projected = ! empty( $request->fields )
 			? $request->fields
 			: $this->fields->get_default_field_ids( 'attachment' );
@@ -65,14 +65,19 @@ final class MediaEntityAdapter extends PostEntityAdapter {
 			array_unshift( $projected, 'id' );
 		}
 
-		$planned = $this->planner->query_post_ids(
-			$request,
-			[ 'attachment' ],
-			$field_map,
-			[ 'inherit' ]
-		);
+		$this->fields->set_include_options( false );
+		try {
+			$planned = $this->planner->query_post_ids(
+				$request,
+				[ 'attachment' ],
+				$field_map,
+				[ 'inherit' ]
+			);
 
-		$items       = $this->hydrate_records( $planned['ids'], $projected );
+			$items = $this->hydrate_records( $planned['ids'], $projected );
+		} finally {
+			$this->fields->set_include_options( true );
+		}
 		$total       = $planned['total'];
 		$total_pages = max( 1, (int) ceil( $total / $request->per_page ) );
 

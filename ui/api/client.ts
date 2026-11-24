@@ -100,6 +100,15 @@ export async function fetchRecords(
 	} );
 }
 
+export async function fetchSingleRecord(
+	entity: string,
+	id: number
+): Promise<{ record: RecordRow }> {
+	return apiFetch<{ record: RecordRow }>( {
+		path: `${ REST_PREFIX }records/${ encodeURIComponent( entity ) }/${ id }`,
+	} );
+}
+
 export async function createRecord(
 	entity: string,
 	data: Record<string, unknown>
@@ -266,10 +275,13 @@ export async function deleteView( id: string ): Promise<{ deleted: boolean }> {
 	} );
 }
 
-export async function syncViewsFromJson(): Promise<{ synced: number }> {
+export async function syncViewsFromJson(
+	entity?: string
+): Promise<{ synced: number; views?: SavedView[] }> {
 	return apiFetch( {
 		path: `${ REST_PREFIX }views/sync-json`,
 		method: 'POST',
+		data: entity ? { entity } : {},
 	} );
 }
 
@@ -304,7 +316,11 @@ export function buildExportUrl(
 		lens: params.lens && params.lens !== 'all' ? params.lens : undefined,
 		flatten_variations: params.flatten_variations ? 1 : undefined,
 	} );
-	return `${ root }export/${ encodeURIComponent( entity ) }${ qs }`;
+	const base = `${ root }export/${ encodeURIComponent( entity ) }`;
+	if ( ! qs ) {
+		return base;
+	}
+	return base.includes( '?' ) ? `${ base }&${ qs.slice( 1 ) }` : `${ base }${ qs }`;
 }
 
 export async function fetchRecordHistory(

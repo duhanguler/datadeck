@@ -70,6 +70,9 @@ final class AcfFieldProvider implements FieldProviderInterface {
 				if ( null === $mapped ) {
 					continue;
 				}
+				if ( 'select' === $mapped && ! empty( $acf['multiple'] ) ) {
+					$mapped = 'multiselect';
+				}
 
 				$options = [];
 				if ( ! empty( $acf['choices'] ) && is_array( $acf['choices'] ) ) {
@@ -203,10 +206,24 @@ final class AcfFieldProvider implements FieldProviderInterface {
 		$target = 'user' === $entity_slug ? 'user_' . $record_id : $record_id;
 		$key    = (string) ( $field->extra['acfKey'] ?? $field->meta_key );
 
+		if ( 'email' === $field->type ) {
+			$raw_email = trim( (string) $value );
+			$clean     = sanitize_email( $raw_email );
+			if ( '' !== $raw_email && ( '' === $clean || ! is_email( $clean ) ) ) {
+				return new WP_Error( 'datadeck_invalid_email', __( 'Invalid email address.', 'datadeck' ), [ 'status' => 400 ] );
+			}
+			$value = $clean;
+		}
+
+		if ( 'multiselect' === $field->type && ! is_array( $value ) ) {
+			$str   = trim( (string) $value );
+			$value = '' === $str ? [] : array_values( array_filter( array_map( 'trim', explode( ',', $str ) ), static fn( string $s ): bool => '' !== $s ) );
+		}
+
 		$sanitized = match ( $field->type ) {
 			'boolean' => filter_var( $value, FILTER_VALIDATE_BOOLEAN ) ? 1 : 0,
 			'number'  => '' === (string) $value ? '' : (float) $value,
-			'email'   => sanitize_email( (string) $value ),
+			'email'   => (string) $value,
 			'url'     => esc_url_raw( (string) $value ),
 			'media'   => is_array( $value ) ? (int) ( $value['id'] ?? 0 ) : (int) $value,
 			'date'    => str_replace( '-', '', sanitize_text_field( (string) $value ) ),

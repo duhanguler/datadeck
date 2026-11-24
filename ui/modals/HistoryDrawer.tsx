@@ -55,9 +55,12 @@ export default function HistoryDrawer( { entity, onClose, onRolledBack }: Histor
 
 	const handleCancelSchedule = async ( uuid: string ) => {
 		setBusyUuid( uuid );
+		setErrorMsg( null );
 		try {
 			await cancelSchedule( uuid );
 			reload();
+		} catch ( err ) {
+			setErrorMsg( err instanceof Error ? err.message : 'Failed to cancel schedule' );
 		} finally {
 			setBusyUuid( null );
 		}

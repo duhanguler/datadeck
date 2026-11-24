@@ -82,13 +82,9 @@ export default function CsvImportModal( {
 				throw new Error( __( 'No data rows detected.', 'datadeck' ) );
 			}
 
-			// Send a small sample (header + first 10 lines) for fast server-side auto-mapping.
-			const sampleContent =
-				format === 'json'
-					? JSON.stringify( localRows.slice( 0, 10 ) )
-					: rawText.split( /\r?\n/ ).slice( 0, 15 ).join( '\n' );
-
-			const res = await analyzeImport( entity, sampleContent, format );
+			// Send already-parsed sample objects as JSON so multiline quoted CSV cells never slice mid-quote.
+			const sampleContent = JSON.stringify( localRows.slice( 0, 10 ) );
+			const res = await analyzeImport( entity, sampleContent, 'json' );
 			setParsedRows( localRows );
 			setAnalysis( { ...res, totalRows: localRows.length } );
 			setMapping( res.suggestedMapping );
@@ -434,11 +430,13 @@ export default function CsvImportModal( {
 							<button
 								type="button"
 								className="rc-btn rc-btn--primary"
-								disabled={ busy || ( preview.willUpdate === 0 && preview.willCreate === 0 ) }
+								disabled={ busy || ( parsedRows.length <= 500 && preview.willUpdate === 0 && preview.willCreate === 0 ) }
 								onClick={ handleApply }
 							>
 								{ busy
 									? __( 'Applying…', 'datadeck' )
+									: parsedRows.length > 500
+									? `${ __( 'Apply Import', 'datadeck' ) } (${ parsedRows.length } ${ __( 'rows', 'datadeck' ) })`
 									: `${ __( 'Apply Import', 'datadeck' ) } (${ preview.willUpdate + preview.willCreate })` }
 							</button>
 						) }

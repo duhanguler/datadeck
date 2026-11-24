@@ -242,7 +242,10 @@ function reducer( state: WorkspaceState = DEFAULT_STATE, action: Action ): Works
 				entity: action.entity as string,
 				page: 1,
 				search: '',
+				sortField: 'id',
+				sortDirection: 'desc',
 				filters: [],
+				filterRelation: 'AND',
 				activeLens: 'all',
 				activeViewId: null,
 				selectedIds: {},
@@ -328,7 +331,10 @@ function reducer( state: WorkspaceState = DEFAULT_STATE, action: Action ): Works
 			if ( nextLens && nextLens !== state.activeLens ) {
 				const lensObj = state.lenses.find( ( l ) => l.id === nextLens );
 				if ( lensObj && lensObj.columns.length > 0 ) {
-					nextCols = lensObj.columns.filter( ( c ) => Boolean( state.fieldMap[ c ] ) );
+					const validCols = lensObj.columns.filter( ( c ) => Boolean( state.fieldMap[ c ] ) );
+					if ( validCols.length > 0 ) {
+						nextCols = validCols;
+					}
 				}
 			}
 			return {
@@ -386,11 +392,12 @@ function reducer( state: WorkspaceState = DEFAULT_STATE, action: Action ): Works
 
 		case 'APPLY_SAVED_VIEW': {
 			const v = action.view as SavedView;
+			const validViewCols = v.columns.filter( ( c ) => Boolean( state.fieldMap[ c ] ) );
 			return {
 				...state,
 				activeViewId: v.id,
 				activeLens: 'all',
-				visibleColumns: v.columns.length > 0 ? v.columns.filter( ( c ) => Boolean( state.fieldMap[ c ] ) ) : state.visibleColumns,
+				visibleColumns: validViewCols.length > 0 ? validViewCols : state.visibleColumns,
 				columnWidths: { ...state.columnWidths, ...( v.columnWidths || {} ) },
 				density: v.density || state.density,
 				sortField: v.sortField || 'id',

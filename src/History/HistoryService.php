@@ -147,6 +147,28 @@ final class HistoryService {
 	}
 
 	/**
+	 * Remove an empty batch header row when zero field deltas were recorded.
+	 */
+	public function delete_batch_if_empty( int $batch_id ): bool {
+		global $wpdb;
+		$batches = Schema::batches_table();
+		$changes = Schema::changes_table();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COUNT(id) FROM %i WHERE batch_id = %d', $changes, $batch_id )
+		);
+
+		if ( $count > 0 ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete( $batches, [ 'id' => $batch_id ], [ '%d' ] );
+		return true;
+	}
+
+	/**
 	 * List recent batches (optionally filtered by entity).
 	 *
 	 * @return array<int, array<string, mixed>>
@@ -270,8 +292,11 @@ final class HistoryService {
 			return new WP_Error( 'datadeck_batch_not_found', __( 'Batch not found.', 'datadeck' ), [ 'status' => 404 ] );
 		}
 
-		if ( 'rolled_back' === $batch->status || 'reverted' === $batch->status ) {
-			return new WP_Error( 'datadeck_already_rolled_back', __( 'This batch has already been rolled back.', 'datadeck' ), [ 'status' => 409 ] );
+		if ( 'applied' !== $batch->status ) {
+			$msg = in_array( $batch->status, [ 'rolled_back', 'reverted' ], true )
+				? __( 'This batch has already been rolled back.', 'datadeck' )
+				: __( 'Only applied batches can be rolled back.', 'datadeck' );
+			return new WP_Error( 'datadeck_invalid_rollback_status', $msg, [ 'status' => 409 ] );
 		}
 
 		$entity_slug = (string) $batch->entity_type;
@@ -348,8 +373,8 @@ final class HistoryService {
 
 		$this->finalize_batch_count( $rollback_batch['id'] );
 
-		// Mark original batch as rolled_back only when all permitted deltas succeeded.
-		if ( ! empty( $restored_objects ) || empty( $rows ) ) {
+		// Mark original batch as rolled_back/reverted only when every delta restored cleanly (no partial lockout).
+		if ( empty( $errors ) && ( ! empty( $restored_objects ) || empty( $rows ) ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->update(
 				$batches,
@@ -521,13 +546,18 @@ final class HistoryService {
 		$batches = Schema::batches_table();
 		$changes = Schema::changes_table();
 
-		// Keep pending scheduled batches intact.
+		$now = current_time( 'mysql', true );
+		// Keep pending scheduled batches AND applied batches awaiting a future auto-revert intact.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$old_ids = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT id FROM %i WHERE created_at < %s AND status <> 'scheduled'",
+				"SELECT id FROM %i
+				WHERE created_at < %s
+				AND status NOT IN ('scheduled', 'running')
+				AND (revert_at IS NULL OR revert_at <= %s OR status IN ('rolled_back', 'reverted', 'cancelled'))",
 				$batches,
-				$cutoff
+				$cutoff,
+				$now
 			)
 		);
 

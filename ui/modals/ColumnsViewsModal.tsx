@@ -56,6 +56,7 @@ export default function ColumnsViewsModal( {
 	const [ viewName, setViewName ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
 	const [ syncMessage, setSyncMessage ] = useState<string | null>( null );
+	const [ viewError, setViewError ] = useState<string | null>( null );
 
 	const [ cfLabel, setCfLabel ] = useState( '' );
 	const [ cfFormula, setCfFormula ] = useState( '' );
@@ -113,6 +114,7 @@ export default function ColumnsViewsModal( {
 			return;
 		}
 		setSaving( true );
+		setViewError( null );
 		try {
 			const res = await saveView( entity, {
 				name: viewName.trim(),
@@ -126,19 +128,34 @@ export default function ColumnsViewsModal( {
 			} );
 			onUpdateViews( [ ...views.filter( ( v ) => v.id !== res.view.id ), res.view ] );
 			setViewName( '' );
+		} catch ( err ) {
+			setViewError( err instanceof Error ? err.message : __( 'Failed to save view.', 'datadeck' ) );
 		} finally {
 			setSaving( false );
 		}
 	};
 
 	const handleDeleteView = async ( id: string ) => {
-		await deleteView( id );
-		onUpdateViews( views.filter( ( v ) => v.id !== id ) );
+		setViewError( null );
+		try {
+			await deleteView( id );
+			onUpdateViews( views.filter( ( v ) => v.id !== id ) );
+		} catch ( err ) {
+			setViewError( err instanceof Error ? err.message : __( 'Failed to delete view.', 'datadeck' ) );
+		}
 	};
 
 	const handleSyncJson = async () => {
-		const res = await syncViewsFromJson();
-		setSyncMessage( `${ res.synced } view(s) synced from datadeck-json/.` );
+		setViewError( null );
+		try {
+			const res = await syncViewsFromJson( entity );
+			if ( res.views ) {
+				onUpdateViews( res.views );
+			}
+			setSyncMessage( `${ res.synced } view(s) synced from datadeck-json/.` );
+		} catch ( err ) {
+			setViewError( err instanceof Error ? err.message : __( 'Failed to sync views.', 'datadeck' ) );
+		}
 	};
 
 	const handleSaveComputed = async () => {
@@ -172,8 +189,13 @@ export default function ColumnsViewsModal( {
 	};
 
 	const handleDeleteComputed = async ( fieldId: string ) => {
-		const res = await deleteComputedField( entity, fieldId );
-		onUpdateFields( res.fields );
+		setCfError( null );
+		try {
+			const res = await deleteComputedField( entity, fieldId );
+			onUpdateFields( res.fields );
+		} catch ( err ) {
+			setCfError( err instanceof Error ? err.message : __( 'Failed to delete formula column.', 'datadeck' ) );
+		}
 	};
 
 	return (
@@ -364,6 +386,11 @@ export default function ColumnsViewsModal( {
 						</>
 					) : (
 						<>
+							{ viewError && (
+								<div style={ { padding: '8px', fontSize: '12px', color: 'var(--rc-danger)', background: 'var(--rc-danger-bg)', borderRadius: '4px' } }>
+									{ viewError }
+								</div>
+							) }
 							<div className="rc-field-row">
 								<label>{ __( 'Save Current Columns, Widths & Filters as View', 'datadeck' ) }</label>
 								<div style={ { display: 'flex', gap: '6px' } }>

@@ -233,11 +233,19 @@ final class WooOrderFieldProvider implements FieldProviderInterface {
 
 		switch ( $field->id ) {
 			case 'status':
-				$order->update_status( sanitize_key( (string) $value ), __( 'Updated via DataDeck.', 'datadeck' ), true );
+				$raw_status = str_replace( 'wc-', '', sanitize_key( (string) $value ) );
+				$allowed    = function_exists( 'wc_get_order_statuses' )
+					? array_map( static fn( string $k ): string => str_replace( 'wc-', '', $k ), array_keys( wc_get_order_statuses() ) )
+					: [];
+				if ( '' === $raw_status || ( ! empty( $allowed ) && ! in_array( $raw_status, $allowed, true ) ) ) {
+					return new WP_Error( 'datadeck_invalid_order_status', __( 'Invalid order status.', 'datadeck' ), [ 'status' => 400 ] );
+				}
+				$order->update_status( $raw_status, __( 'Updated via DataDeck.', 'datadeck' ), true );
 				return true;
 			case 'billing_email':
-				$email = sanitize_email( (string) $value );
-				if ( '' !== $email && ! is_email( $email ) ) {
+				$raw_input = trim( (string) $value );
+				$email     = sanitize_email( $raw_input );
+				if ( '' !== $raw_input && ( '' === $email || ! is_email( $email ) ) ) {
 					return new WP_Error( 'datadeck_invalid_email', __( 'Invalid billing email.', 'datadeck' ), [ 'status' => 400 ] );
 				}
 				$order->set_billing_email( $email );

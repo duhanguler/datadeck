@@ -206,26 +206,24 @@ final class AdminIntegration {
 			return null;
 		}
 
+		$candidate = null;
 		if ( 'edit.php' === $hook_suffix && ! empty( $screen->post_type ) ) {
-			return $this->entities->get( (string) $screen->post_type ) ? (string) $screen->post_type : null;
+			$candidate = (string) $screen->post_type;
+		} elseif ( 'upload.php' === $hook_suffix ) {
+			$candidate = 'attachment';
+		} elseif ( 'users.php' === $hook_suffix ) {
+			$candidate = 'user';
+		} elseif ( 'edit-comments.php' === $hook_suffix ) {
+			$candidate = 'comment';
+		} elseif ( 'woocommerce_page_wc-orders' === $hook_suffix ) {
+			$candidate = 'shop_order';
 		}
 
-		if ( 'upload.php' === $hook_suffix ) {
-			return 'attachment';
+		if ( null === $candidate ) {
+			return null;
 		}
 
-		if ( 'users.php' === $hook_suffix ) {
-			return 'user';
-		}
-
-		if ( 'edit-comments.php' === $hook_suffix ) {
-			return 'comment';
-		}
-
-		if ( 'woocommerce_page_wc-orders' === $hook_suffix ) {
-			return $this->entities->get( 'shop_order' ) ? 'shop_order' : null;
-		}
-
-		return null;
+		$adapter = $this->entities->get( $candidate );
+		return ( $adapter && $adapter->can_read() ) ? $candidate : null;
 	}
 }

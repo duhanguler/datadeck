@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { fetchRecordHistory, rollbackSingleChange } from '../api/client';
+import { fetchRecordHistory, fetchSingleRecord, rollbackSingleChange } from '../api/client';
 import type { FieldDefinition, RecordHistoryEntry, RecordRow, StagedEdit } from '../types';
 
 interface InspectorDrawerProps {
@@ -28,15 +28,40 @@ export default function InspectorDrawer( {
 	onClose,
 }: InspectorDrawerProps ) {
 	const [ tab, setTab ] = useState<'edit' | 'history'>( initialTab );
+	const [ baselineRecord, setBaselineRecord ] = useState<RecordRow>( { ...record } );
 	const [ localData, setLocalData ] = useState<RecordRow>( { ...record } );
+	const [ loadingRecord, setLoadingRecord ] = useState( false );
 	const [ historyField, setHistoryField ] = useState<string>( initialHistoryField );
 	const [ historyItems, setHistoryItems ] = useState<RecordHistoryEntry[]>( [] );
 	const [ loadingHistory, setLoadingHistory ] = useState( false );
 	const [ restoringId, setRestoringId ] = useState<number | null>( null );
+	const [ errorMsg, setErrorMsg ] = useState<string | null>( null );
+	const canEditRecord = baselineRecord._canEdit !== false && record._canEdit !== false;
 
 	useEffect( () => {
+		let cancelled = false;
+		setBaselineRecord( { ...record } );
 		setLocalData( { ...record } );
-	}, [ record ] );
+		setErrorMsg( null );
+		setLoadingRecord( true );
+		fetchSingleRecord( entity, record.id )
+			.then( ( res ) => {
+				if ( ! cancelled && res.record ) {
+					const merged = { ...record, ...res.record };
+					setBaselineRecord( merged );
+					setLocalData( merged );
+				}
+			} )
+			.catch( () => {} )
+			.finally( () => {
+				if ( ! cancelled ) {
+					setLoadingRecord( false );
+				}
+			} );
+		return () => {
+			cancelled = true;
+		};
+	}, [ entity, record ] );
 
 	useEffect( () => {
 		setTab( initialTab );
@@ -86,13 +111,17 @@ export default function InspectorDrawer( {
 	};
 
 	const handleApply = () => {
+		if ( ! canEditRecord ) {
+			onClose();
+			return;
+		}
 		const staged: StagedEdit[] = [];
 		for ( const f of editableFields ) {
-			if ( JSON.stringify( localData[ f.id ] ) !== JSON.stringify( record[ f.id ] ) ) {
+			if ( JSON.stringify( localData[ f.id ] ) !== JSON.stringify( baselineRecord[ f.id ] ) ) {
 				staged.push( {
 					recordId: record.id,
 					fieldId: f.id,
-					oldValue: record[ f.id ],
+					oldValue: baselineRecord[ f.id ],
 					newValue: localData[ f.id ],
 				} );
 			}
@@ -105,11 +134,14 @@ export default function InspectorDrawer( {
 
 	const handleRestoreChange = async ( entry: RecordHistoryEntry ) => {
 		setRestoringId( entry.changeId );
+		setErrorMsg( null );
 		try {
 			const res = await rollbackSingleChange( entry.changeId );
 			onRestoredCell?.( `${ __( 'Restored', 'datadeck' ) } ${ res.field } #${ res.objectId }` );
 			const refreshed = await fetchRecordHistory( entity, record.id, historyField || undefined );
 			setHistoryItems( refreshed.changes );
+		} catch ( err ) {
+			setErrorMsg( err instanceof Error ? err.message : __( 'Failed to restore cell.', 'datadeck' ) );
 		} finally {
 			setRestoringId( null );
 		}
@@ -148,7 +180,17 @@ export default function InspectorDrawer( {
 				</div>
 
 				<div className="rc-modal-body">
+					{ errorMsg && (
+						<div style={ { padding: '8px', fontSize: '12px', color: 'var(--rc-danger)', background: 'var(--rc-danger-bg)', borderRadius: '4px' } }>
+							{ errorMsg }
+						</div>
+					) }
 					{ tab === 'edit' ? (
+						loadingRecord ? (
+							<div style={ { fontSize: '12.5px', color: 'var(--rc-ink-muted)' } }>
+								{ __( 'Loading all record fields…', 'datadeck' ) }
+							</div>
+						) : (
 						Object.entries( grouped ).map( ( [ group, list ] ) => (
 							<div key={ group } style={ { display: 'flex', flexDirection: 'column', gap: '10px' } }>
 								<div
@@ -261,6 +303,7 @@ export default function InspectorDrawer( {
 								} ) }
 							</div>
 						) )
+						)
 					) : (
 						<>
 							<div className="rc-field-row">
@@ -340,7 +383,7 @@ export default function InspectorDrawer( {
 							<button type="button" className="rc-btn rc-btn--ghost" onClick={ onClose }>
 								{ __( 'Cancel', 'datadeck' ) }
 							</button>
-							<button type="button" className="rc-btn rc-btn--primary" onClick={ handleApply }>
+							<button type="button" className="rc-btn rc-btn--primary" disabled={ ! canEditRecord || loadingRecord } onClick={ handleApply }>
 								{ __( 'Apply Changes', 'datadeck' ) }
 							</button>
 						</div>

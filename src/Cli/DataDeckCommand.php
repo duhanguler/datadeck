@@ -42,7 +42,7 @@ final class DataDeckCommand {
 	 * @param array<string, mixed> $assoc_args Named options.
 	 */
 	public function status( array $args, array $assoc_args ): void {
-		$entities = $this->entities->list_readable();
+		$entities = $this->entities->list_available();
 		$sync     = $this->views->get_json_sync_status();
 
 		WP_CLI::log( sprintf( 'DataDeck v%s', DATADECK_VERSION ) );
@@ -277,7 +277,7 @@ final class DataDeckCommand {
 		$created    = 0;
 
 		foreach ( $chunks as $chunk ) {
-			$res = $this->importer->apply_chunk( $entity, $chunk, $mapping, $match_by, $create, $batch_uuid );
+			$res = $this->importer->apply_chunk( $entity, $chunk, $mapping, $match_by, $create, $batch_uuid, true );
 			if ( is_wp_error( $res ) ) {
 				WP_CLI::error( $res->get_error_message() );
 				return;

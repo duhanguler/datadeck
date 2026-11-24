@@ -29,7 +29,6 @@ final class SmartQueryPlanner {
 	 */
 	private const WOO_LOOKUP_COLUMNS = [
 		'regular_price'  => 'max_price',
-		'sale_price'     => 'min_price',
 		'price'          => 'min_price',
 		'sku'            => 'sku',
 		'stock_quantity' => 'stock_quantity',
@@ -116,10 +115,34 @@ final class SmartQueryPlanner {
 			array_push( $params_base, ...$statuses );
 		}
 
-		// Search term (title, slug, ID, or SKU if Woo lookup exists).
+		// Multi-author visibility guard for authenticated non-editor sessions (prevents leaking private/other-author drafts).
+		if ( is_user_logged_in() && ! in_array( 'attachment', $post_types, true ) ) {
+			$primary_pt = $post_types[0] ?? 'post';
+			$pt_obj     = get_post_type_object( $primary_pt );
+			$uid        = get_current_user_id();
+			if ( $pt_obj ) {
+				if ( ! current_user_can( $pt_obj->cap->edit_others_posts ) ) {
+					$where_base[]  = "(p.post_status = 'publish' OR p.post_author = %d)";
+					$params_base[] = $uid;
+				} elseif ( ! current_user_can( $pt_obj->cap->read_private_posts ) ) {
+					$where_base[]  = "(p.post_status <> 'private' OR p.post_author = %d)";
+					$params_base[] = $uid;
+				}
+			}
+		}
+
+		// Search term (title, slug, ID, and SKU including numeric SKUs / EAN barcodes when Woo lookup exists).
 		if ( '' !== $request->search ) {
 			$like = '%' . $wpdb->esc_like( $request->search ) . '%';
-			if ( ctype_digit( $request->search ) ) {
+			if ( ctype_digit( $request->search ) && $use_lookup ) {
+				$joins['woo_lookup'] = "LEFT JOIN {$wpdb->prefix}wc_product_meta_lookup AS wcl ON p.ID = wcl.product_id";
+				$where_base[]        = '(p.ID = %d OR p.post_title LIKE %s OR p.post_name LIKE %s OR wcl.sku LIKE %s)';
+				$params_base[]       = (int) $request->search;
+				$params_base[]       = $like;
+				$params_base[]       = $like;
+				$params_base[]       = $like;
+				$plan_parts[]        = 'woo-lookup-search';
+			} elseif ( ctype_digit( $request->search ) ) {
 				$where_base[]  = '(p.ID = %d OR p.post_title LIKE %s OR p.post_name LIKE %s)';
 				$params_base[] = (int) $request->search;
 				$params_base[] = $like;
@@ -154,8 +177,8 @@ final class SmartQueryPlanner {
 				continue;
 			}
 
-			// 1. WooCommerce lookup table shortcut (fast indexed column).
-			if ( $use_lookup && isset( self::WOO_LOOKUP_COLUMNS[ $field_id ] ) ) {
+			// 1. WooCommerce lookup table shortcut (skip regular_price on filter because lookup max_price stores active _price on simple on-sale items).
+			if ( $use_lookup && 'regular_price' !== $field_id && isset( self::WOO_LOOKUP_COLUMNS[ $field_id ] ) ) {
 				$joins['woo_lookup'] = "LEFT JOIN {$wpdb->prefix}wc_product_meta_lookup AS wcl ON p.ID = wcl.product_id";
 				$col                 = 'wcl.' . self::WOO_LOOKUP_COLUMNS[ $field_id ];
 				$built               = $this->build_column_condition( $col, $op, $val, $val2, in_array( $field->type, [ 'number', 'currency', 'integer' ], true ) );
@@ -188,8 +211,8 @@ final class SmartQueryPlanner {
 					$filter_clauses[] = "EXISTS (SELECT 1 FROM {$wpdb->term_relationships} tr INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id WHERE tr.object_id = p.ID AND tt.taxonomy = %s)";
 					$filter_params[]  = $tax;
 				} elseif ( null !== $val && '' !== $val ) {
-					$term_ids = is_array( $val ) ? array_map( 'intval', $val ) : [ (int) $val ];
-					$term_ids = array_values( array_filter( $term_ids ) );
+					$raw_items = is_array( $val ) ? $val : explode( ',', (string) $val );
+					$term_ids  = array_values( array_filter( array_map( 'intval', $raw_items ) ) );
 					if ( ! empty( $term_ids ) ) {
 						$in               = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
 						$exists_kw        = in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) ? 'NOT EXISTS' : 'EXISTS';
@@ -213,6 +236,23 @@ final class SmartQueryPlanner {
 					$filter_params[]  = $field->meta_key;
 					continue;
 				}
+				if ( 'boolean' === $field->type && in_array( $op, [ 'is', 'equals', 'isnot', 'is_not', 'not_equals' ], true ) ) {
+					$want_true = filter_var( $val, FILTER_VALIDATE_BOOLEAN );
+					if ( in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) ) {
+						$want_true = ! $want_true;
+					}
+					if ( 'rank_math_robots' === $field->meta_key ) {
+						$kw               = $want_true ? 'EXISTS' : 'NOT EXISTS';
+						$filter_clauses[] = "{$kw} (SELECT 1 FROM {$wpdb->postmeta} pm_b WHERE pm_b.post_id = p.ID AND pm_b.meta_key = %s AND pm_b.meta_value LIKE %s)";
+						$filter_params[]  = $field->meta_key;
+						$filter_params[]  = '%noindex%';
+					} else {
+						$kw               = $want_true ? 'EXISTS' : 'NOT EXISTS';
+						$filter_clauses[] = "{$kw} (SELECT 1 FROM {$wpdb->postmeta} pm_b WHERE pm_b.post_id = p.ID AND pm_b.meta_key = %s AND LOWER(pm_b.meta_value) IN ('1', 'yes', 'true'))";
+						$filter_params[]  = $field->meta_key;
+					}
+					continue;
+				}
 
 				++$meta_join_idx;
 				$alias = 'pmf' . $meta_join_idx;
@@ -223,7 +263,9 @@ final class SmartQueryPlanner {
 				);
 				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$is_num     = in_array( $field->type, [ 'number', 'currency', 'integer' ], true );
-				$target_col = $is_num ? "CAST({$alias}.meta_value AS DECIMAL(18,4))" : "{$alias}.meta_value";
+				$target_col = $is_num
+					? "CASE WHEN {$alias}.meta_value REGEXP '^-?[0-9]+(\\\\.[0-9]+)?$' THEN CAST({$alias}.meta_value AS DECIMAL(18,4)) ELSE NULL END"
+					: "{$alias}.meta_value";
 				$built      = $this->build_column_condition( $target_col, $op, $val, $val2, $is_num );
 				if ( $built ) {
 					$filter_clauses[] = $built['sql'];
@@ -268,7 +310,9 @@ final class SmartQueryPlanner {
 				$sort_def->meta_key
 			);
 			$is_num          = in_array( $sort_def->type, [ 'number', 'currency', 'integer' ], true );
-			$sort_col        = $is_num ? 'CAST(pmsort.meta_value AS DECIMAL(18,4))' : 'pmsort.meta_value';
+			$sort_col        = $is_num
+				? "CASE WHEN pmsort.meta_value REGEXP '^-?[0-9]+(\\\\.[0-9]+)?$' THEN CAST(pmsort.meta_value AS DECIMAL(18,4)) ELSE NULL END"
+				: 'pmsort.meta_value';
 			$order_by        = "{$agg_fn}({$sort_col}) {$dir}, p.ID {$dir}";
 		}
 
@@ -384,11 +428,11 @@ final class SmartQueryPlanner {
 				'params' => [ $cast_val, $is_numeric ? (float) $val2 : (string) $val2 ],
 			],
 			'isempty'     => [
-				'sql'    => "({$col} IS NULL OR {$col} = '')",
+				'sql'    => $is_numeric ? "{$col} IS NULL" : "({$col} IS NULL OR {$col} = '')",
 				'params' => [],
 			],
 			'isnotempty'  => [
-				'sql'    => "({$col} IS NOT NULL AND {$col} <> '')",
+				'sql'    => $is_numeric ? "{$col} IS NOT NULL" : "({$col} IS NOT NULL AND {$col} <> '')",
 				'params' => [],
 			],
 			'inlastdays'  => [
@@ -432,7 +476,7 @@ final class SmartQueryPlanner {
 			if ( $use_lookup ) {
 				$joins['woo_lookup'] = "LEFT JOIN {$wpdb->prefix}wc_product_meta_lookup AS wcl ON p.ID = wcl.product_id";
 				return [
-					'sql'    => "(wcl.min_price IS NULL OR wcl.min_price <= 0 OR wcl.sku IS NULL OR wcl.sku = '' OR (wcl.onsale = 1 AND wcl.min_price >= wcl.max_price))",
+					'sql'    => "(wcl.min_price IS NULL OR wcl.min_price <= 0 OR wcl.sku IS NULL OR wcl.sku = '' OR EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm_sp INNER JOIN {$wpdb->postmeta} pm_rp ON pm_rp.post_id = pm_sp.post_id AND pm_rp.meta_key = '_regular_price' WHERE pm_sp.post_id = p.ID AND pm_sp.meta_key = '_sale_price' AND pm_sp.meta_value <> '' AND pm_rp.meta_value <> '' AND CAST(pm_sp.meta_value AS DECIMAL(18,4)) >= CAST(pm_rp.meta_value AS DECIMAL(18,4))))",
 					'params' => [],
 				];
 			}

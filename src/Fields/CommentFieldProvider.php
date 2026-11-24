@@ -276,10 +276,14 @@ final class CommentFieldProvider implements FieldProviderInterface {
 		if ( 'rating' === $field->id ) {
 			if ( null === $value || '' === $value ) {
 				delete_comment_meta( $record_id, 'rating' );
-				return true;
+			} else {
+				$num = max( 1, min( 5, (int) $value ) );
+				update_comment_meta( $record_id, 'rating', $num );
 			}
-			$num = max( 1, min( 5, (int) $value ) );
-			update_comment_meta( $record_id, 'rating', $num );
+			$comment = get_comment( $record_id );
+			if ( $comment instanceof WP_Comment && (int) $comment->comment_post_ID > 0 && class_exists( 'WC_Comments' ) ) {
+				\WC_Comments::clear_transients( (int) $comment->comment_post_ID );
+			}
 			return true;
 		}
 
@@ -292,11 +296,20 @@ final class CommentFieldProvider implements FieldProviderInterface {
 			return is_wp_error( $ok ) ? $ok : true;
 		}
 
+		if ( 'author_email' === $field->id ) {
+			$raw_email = trim( (string) $value );
+			$clean     = sanitize_email( $raw_email );
+			if ( '' !== $raw_email && ( '' === $clean || ! is_email( $clean ) ) ) {
+				return new WP_Error( 'datadeck_invalid_email', __( 'Invalid author email address.', 'datadeck' ), [ 'status' => 400 ] );
+			}
+			$value = $clean;
+		}
+
 		$update = [ 'comment_ID' => $record_id ];
 		match ( $field->id ) {
 			'content'      => $update['comment_content']      = wp_kses_post( (string) $value ),
 			'author_name'  => $update['comment_author']       = sanitize_text_field( (string) $value ),
-			'author_email' => $update['comment_author_email'] = sanitize_email( (string) $value ),
+			'author_email' => $update['comment_author_email'] = (string) $value,
 			default        => null,
 		};
 

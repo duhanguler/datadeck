@@ -102,6 +102,13 @@ final class CampaignScheduler {
 	}
 
 	/**
+	 * Enqueue an auto-revert event for an already-applied bulk batch.
+	 */
+	public function schedule_revert( string $batch_uuid, int $revert_ts ): void {
+		$this->enqueue_event( $revert_ts, self::HOOK_REVERT, [ $batch_uuid ] );
+	}
+
+	/**
 	 * Cancel a pending scheduled campaign.
 	 */
 	public function cancel( string $batch_uuid ): bool|WP_Error {
@@ -141,9 +148,26 @@ final class CampaignScheduler {
 		global $wpdb;
 		$table = Schema::batches_table();
 
+		// Atomically claim the scheduled campaign so overlapping cron / Action Scheduler workers cannot run it twice.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$claimed = $wpdb->update(
+			$table,
+			[ 'status' => 'running' ],
+			[
+				'batch_uuid' => $batch_uuid,
+				'status'     => 'scheduled',
+			],
+			[ '%s' ],
+			[ '%s', '%s' ]
+		);
+
+		if ( 1 !== $claimed ) {
+			return;
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$batch = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE batch_uuid = %s AND status = 'scheduled'", $table, $batch_uuid )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE batch_uuid = %s', $table, $batch_uuid )
 		);
 
 		if ( ! $batch ) {
@@ -152,16 +176,28 @@ final class CampaignScheduler {
 
 		$payload = json_decode( (string) $batch->schedule_payload, true );
 		if ( ! is_array( $payload ) || empty( $payload['rule'] ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update( $table, [ 'status' => 'failed' ], [ 'batch_uuid' => $batch_uuid ], [ '%s' ], [ '%s' ] );
 			return;
 		}
 
 		$prev_user_id  = get_current_user_id();
 		$owner_user_id = (int) $batch->user_id;
+		$is_system     = 0 === $owner_user_id;
 		$has_owner     = $owner_user_id > 0 && (bool) get_userdata( $owner_user_id );
+
+		// Never bypass capability checks when a human scheduling user was deleted after scheduling.
+		if ( ! $is_system && ! $has_owner ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update( $table, [ 'status' => 'failed' ], [ 'batch_uuid' => $batch_uuid ], [ '%s' ], [ '%s' ] );
+			return;
+		}
+
 		if ( $has_owner ) {
 			wp_set_current_user( $owner_user_id );
 		}
 
+		$final_status = 'applied';
 		try {
 			$after_id = 0;
 			while ( true ) {
@@ -173,11 +209,15 @@ final class CampaignScheduler {
 					$after_id,
 					100,
 					$batch_uuid,
-					! $has_owner,
+					$is_system,
 					$batch->revert_at
 				);
 
-				if ( is_wp_error( $res ) || empty( $res['hasMore'] ) ) {
+				if ( is_wp_error( $res ) ) {
+					$final_status = 'failed';
+					break;
+				}
+				if ( empty( $res['hasMore'] ) ) {
 					break;
 				}
 				$after_id = (int) $res['lastId'];
@@ -186,22 +226,32 @@ final class CampaignScheduler {
 			if ( $has_owner ) {
 				wp_set_current_user( $prev_user_id );
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update(
+				$table,
+				[ 'status' => $final_status ],
+				[ 'batch_uuid' => $batch_uuid ],
+				[ '%s' ],
+				[ '%s' ]
+			);
 		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->update(
-			$table,
-			[ 'status' => 'applied' ],
-			[ 'batch_uuid' => $batch_uuid ],
-			[ '%s' ],
-			[ '%s' ]
-		);
 	}
 
 	/**
-	 * Automatically revert a campaign at its revert_at timestamp.
+	 * Automatically revert an applied campaign at its revert_at timestamp.
 	 */
 	public function revert_campaign( string $batch_uuid ): void {
+		global $wpdb;
+		$table = Schema::batches_table();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$status = (string) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT status FROM %i WHERE batch_uuid = %s', $table, $batch_uuid )
+		);
+		if ( 'applied' !== $status ) {
+			return;
+		}
+
 		$this->history->rollback( $batch_uuid, true );
 	}
 

@@ -36,6 +36,12 @@ if ( ! class_exists( 'WC_Data_Exception' ) ) {
 	class WC_Data_Exception extends \Exception {}
 }
 
+if ( ! class_exists( 'WC_Comments' ) ) {
+	class WC_Comments {
+		public static function clear_transients( int $post_id ): void {}
+	}
+}
+
 if ( ! function_exists( 'as_schedule_single_action' ) ) {
 	/**
 	 * @param array<int|string, mixed> $args

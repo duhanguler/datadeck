@@ -210,12 +210,18 @@ final class ComputedFieldProvider implements FieldProviderInterface {
 			$format = 'number';
 		}
 
-		$id = ! empty( $payload['id'] )
+		$reserved = [ 'computed_discount_pct', 'computed_inventory_value' ];
+		$slug     = sanitize_key( str_replace( '-', '_', sanitize_title( $label ) ) );
+		$id       = ! empty( $payload['id'] )
 			? sanitize_key( (string) $payload['id'] )
-			: 'computed_' . sanitize_key( str_replace( '-', '_', sanitize_title( $label ) ) );
+			: 'computed_' . ( '' !== $slug ? $slug : substr( wp_generate_uuid4(), 0, 8 ) );
 
 		if ( ! str_starts_with( $id, 'computed_' ) ) {
 			$id = 'computed_' . $id;
+		}
+
+		if ( in_array( $id, $reserved, true ) ) {
+			$id .= '_' . substr( wp_generate_uuid4(), 0, 4 );
 		}
 
 		$record = [

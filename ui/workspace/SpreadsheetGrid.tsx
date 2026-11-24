@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from '@wordpress/el
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { __ } from '@wordpress/i18n';
 import { InlineCell } from '../cells/InlineCell';
-import { computeNumericAggregation, generateFillSeries } from '../utils/series';
+import { computeNumericAggregation, generateFillSeries, parseLocaleNumber } from '../utils/series';
 import type { ContextMenuState } from './GridContextMenu';
 import type {
 	CellCoord,
@@ -38,7 +38,7 @@ interface SpreadsheetGridProps {
 	onStageOrSaveEdits: ( edits: StagedEdit[], mode?: 'inline' | 'paste' ) => void;
 	onToggleVariations: ( parentId: number ) => void;
 	onInspectRow: ( record: RecordRow ) => void;
-	onDuplicateRow: ( id: number ) => void;
+	onDuplicateRow?: ( id: number ) => void;
 	onOpenContextMenu: ( menu: ContextMenuState ) => void;
 }
 
@@ -54,16 +54,15 @@ function parsePastedCell( raw: string, field: FieldDefinition ): unknown {
 		if ( trimmed === '' ) {
 			return null;
 		}
-		const clean = trimmed.replace( /[^0-9.,-]/g, '' ).replace( ',', '.' );
-		const n = Number( clean );
-		return Number.isNaN( n ) ? trimmed : n;
+		const n = parseLocaleNumber( trimmed );
+		return n === null ? trimmed : n;
 	}
 	if ( field.type === 'integer' ) {
 		if ( trimmed === '' ) {
 			return null;
 		}
-		const n = parseInt( trimmed, 10 );
-		return Number.isNaN( n ) ? trimmed : n;
+		const n = parseLocaleNumber( trimmed );
+		return n === null ? trimmed : Math.trunc( n );
 	}
 	if ( field.type === 'boolean' ) {
 		return [ 'true', '1', 'yes', 'on' ].includes( trimmed.toLowerCase() );

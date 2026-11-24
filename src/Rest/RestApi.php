@@ -97,6 +97,17 @@ final class RestApi {
 			]
 		);
 
+		// Single fully-hydrated record (for Inspector Drawer hidden ACF/SEO/WooCommerce fields).
+		register_rest_route(
+			self::NAMESPACE,
+			'/records/(?P<entity>[a-z0-9_\-]+)/(?P<id>\d+)',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_single_record' ],
+				'permission_callback' => [ $this, 'can_read_entity' ],
+			]
+		);
+
 		// Duplicate a single record.
 		register_rest_route(
 			self::NAMESPACE,
@@ -403,6 +414,45 @@ final class RestApi {
 	}
 
 	/**
+	 * Fetch a single record hydrated with all entity fields (used by Inspector Drawer).
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function get_single_record( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$id      = (int) $request->get_param( 'id' );
+		$adapter = $this->entities->get( $entity );
+		if ( ! $adapter ) {
+			return new WP_Error( 'datadeck_not_found', __( 'Entity not found.', 'datadeck' ), [ 'status' => 404 ] );
+		}
+
+		if ( ! $this->can_inspect_record( $entity, $id, $adapter ) ) {
+			return new WP_Error( 'datadeck_forbidden', __( 'Permission denied to inspect this record.', 'datadeck' ), [ 'status' => 403 ] );
+		}
+
+		$all_fields = array_keys( $this->fields->get_fields_for_entity( $entity, false ) );
+		$hydrated   = $adapter->hydrate_records( [ $id ], $all_fields );
+		if ( empty( $hydrated ) ) {
+			return new WP_Error( 'datadeck_not_found', __( 'Record not found.', 'datadeck' ), [ 'status' => 404 ] );
+		}
+
+		return new WP_REST_Response( [ 'record' => $hydrated[0] ], 200 );
+	}
+
+	/**
+	 * Enforce object-level visibility on single-record inspection and cell history.
+	 */
+	private function can_inspect_record( string $entity, int $id, \DataDeck\Contracts\EntityAdapterInterface $adapter ): bool {
+		if ( $adapter->can_edit( $id ) ) {
+			return true;
+		}
+		if ( ! in_array( $entity, [ 'user', 'shop_order', 'comment' ], true ) ) {
+			return current_user_can( 'read_post', $id );
+		}
+		return $adapter->can_read();
+	}
+
+	/**
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 */
 	public function create_record( WP_REST_Request $request ): WP_REST_Response|WP_Error {
@@ -507,17 +557,35 @@ final class RestApi {
 		}
 
 		if ( 'bulk' === $mode ) {
-			$res = $this->bulk->execute_chunk(
+			$revert_at_utc = null;
+			$revert_ts     = null;
+			if ( ! empty( $body['revertAt'] ) ) {
+				if ( ! $this->can_manage_global_config() ) {
+					return new WP_Error( 'datadeck_forbidden', __( 'Permission denied to schedule auto-revert.', 'datadeck' ), [ 'status' => 403 ] );
+				}
+				$parsed_revert = strtotime( sanitize_text_field( (string) $body['revertAt'] ) );
+				if ( false === $parsed_revert || $parsed_revert <= time() ) {
+					return new WP_Error( 'datadeck_invalid_revert', __( 'Auto-revert time must be a valid future UTC timestamp.', 'datadeck' ), [ 'status' => 400 ] );
+				}
+				$revert_ts     = $parsed_revert;
+				$revert_at_utc = gmdate( 'Y-m-d H:i:s', $parsed_revert );
+			}
+
+			$incoming_uuid = isset( $body['batchUuid'] ) ? sanitize_text_field( (string) $body['batchUuid'] ) : null;
+			$res           = $this->bulk->execute_chunk(
 				$entity,
 				$rule,
 				$target_ids,
 				$query_params,
 				max( 0, (int) ( $body['afterId'] ?? 0 ) ),
 				max( 10, min( 250, (int) ( $body['chunkSize'] ?? 50 ) ) ),
-				isset( $body['batchUuid'] ) ? sanitize_text_field( (string) $body['batchUuid'] ) : null,
+				$incoming_uuid,
 				false,
-				! empty( $body['revertAt'] ) ? sanitize_text_field( (string) $body['revertAt'] ) : null
+				$revert_at_utc
 			);
+			if ( ! is_wp_error( $res ) && null !== $revert_ts && ( null === $incoming_uuid || '' === $incoming_uuid ) && ! empty( $res['batchUuid'] ) ) {
+				$this->scheduler->schedule_revert( (string) $res['batchUuid'], $revert_ts );
+			}
 			return is_wp_error( $res ) ? $res : new WP_REST_Response( $res, 200 );
 		}
 
@@ -658,8 +726,16 @@ final class RestApi {
 		return new WP_REST_Response( [ 'deleted' => $this->views->delete_view( $id ) ], 200 );
 	}
 
-	public function sync_views_from_json(): WP_REST_Response {
-		return new WP_REST_Response( $this->views->sync_from_json(), 200 );
+	/**
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 */
+	public function sync_views_from_json( WP_REST_Request $request ): WP_REST_Response {
+		$res    = $this->views->sync_from_json();
+		$entity = sanitize_key( (string) ( $request->get_param( 'entity' ) ?? '' ) );
+		if ( '' !== $entity ) {
+			$res['views'] = $this->views->get_views( $entity );
+		}
+		return new WP_REST_Response( $res, 200 );
 	}
 
 	/**
@@ -725,9 +801,13 @@ final class RestApi {
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
 	 */
-	public function get_record_history( WP_REST_Request $request ): WP_REST_Response {
-		$entity    = sanitize_key( (string) $request->get_param( 'entity' ) );
-		$id        = (int) $request->get_param( 'id' );
+	public function get_record_history( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$entity  = sanitize_key( (string) $request->get_param( 'entity' ) );
+		$id      = (int) $request->get_param( 'id' );
+		$adapter = $this->entities->get( $entity );
+		if ( ! $adapter || ! $this->can_inspect_record( $entity, $id, $adapter ) ) {
+			return new WP_Error( 'datadeck_forbidden', __( 'Permission denied to view history for this record.', 'datadeck' ), [ 'status' => 403 ] );
+		}
 		$raw_field = (string) ( $request->get_param( 'field' ) ?? '' );
 		$field     = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', $raw_field );
 		$limit     = (int) ( $request->get_param( 'limit' ) ?? 50 );

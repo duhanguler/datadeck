@@ -421,7 +421,8 @@ final class CsvImportEngine {
 		array $mapping,
 		string $match_by = 'id',
 		bool $create_missing = false,
-		?string $batch_uuid = null
+		?string $batch_uuid = null,
+		bool $bypass_capability = false
 	): array|WP_Error {
 		$adapter = $this->entities->get( $entity_slug );
 		if ( ! $adapter ) {
@@ -457,7 +458,7 @@ final class CsvImportEngine {
 			$mapped_values = $this->extract_row_field_values( $row, $mapping, $field_map );
 
 			if ( $record_id <= 0 ) {
-				if ( ! $create_missing || ! $adapter->can_create() ) {
+				if ( ! $create_missing || ( ! $bypass_capability && ! $adapter->can_create() ) ) {
 					++$skipped;
 					continue;
 				}
@@ -487,12 +488,20 @@ final class CsvImportEngine {
 					if ( in_array( $fid, [ 'title', 'sku', 'regular_price', 'status' ], true ) ) {
 						continue;
 					}
-					$this->fields->write_value( $entity_slug, $record_id, $fid, $new_val );
+					$write = $this->fields->write_value( $entity_slug, $record_id, $fid, $new_val );
+					if ( is_wp_error( $write ) ) {
+						$errors[] = [
+							'row'     => $idx + 1,
+							'id'      => $record_id,
+							'field'   => $fid,
+							'message' => $write->get_error_message(),
+						];
+					}
 				}
 				continue;
 			}
 
-			if ( ! $adapter->can_edit( $record_id ) ) {
+			if ( ! $bypass_capability && ! $adapter->can_edit( $record_id ) ) {
 				$errors[] = [
 					'row'     => $idx + 1,
 					'id'      => $record_id,
@@ -530,10 +539,16 @@ final class CsvImportEngine {
 			}
 		}
 
-		$this->history->finalize_batch_count( $batch['id'] );
+		$returned_uuid = $batch['uuid'];
+		if ( 0 === $updated && ( null === $batch_uuid || '' === $batch_uuid ) ) {
+			$this->history->delete_batch_if_empty( $batch['id'] );
+			$returned_uuid = '';
+		} else {
+			$this->history->finalize_batch_count( $batch['id'] );
+		}
 
 		return [
-			'batchUuid' => $batch['uuid'],
+			'batchUuid' => $returned_uuid,
 			'processed' => count( $rows ),
 			'updated'   => $updated,
 			'created'   => $created,
@@ -671,6 +686,15 @@ final class CsvImportEngine {
 				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$found = $wpdb->get_col( $wpdb->prepare( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_ID IN ({$placeholders})", ...$ids ) );
 				// phpcs:enable
+			} elseif ( 'shop_order' === $entity_slug && function_exists( 'wc_get_orders' ) ) {
+				$orders = wc_get_orders(
+					[
+						'include' => $ids,
+						'limit'   => count( $ids ),
+						'return'  => 'ids',
+					]
+				);
+				$found  = is_array( $orders ) ? $orders : [];
 			} elseif ( 'product' === $entity_slug ) {
 				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$found = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type IN ('product', 'product_variation') AND ID IN ({$placeholders})", ...$ids ) );

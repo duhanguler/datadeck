@@ -104,4 +104,23 @@ final class ExpressionEngineTest extends TestCase {
 		$this->assertEqualsWithDelta( 90.0, (float) $this->engine->evaluate( 'regular_price-10', $ctx ), 1e-6 );
 		$this->assertEqualsWithDelta( 89.99, (float) $this->engine->evaluate( 'round(regular_price*0.9-0.01,2)', $ctx ), 1e-6 );
 	}
+
+	public function test_compile_and_validate_reject_unknown_functions_and_bad_if_arity(): void {
+		$bad_fn = $this->engine->validate( 'raund(regular_price, 2)' );
+		$this->assertIsString( $bad_fn );
+		$this->assertStringContainsString( 'Unknown formula function', $bad_fn );
+
+		$bad_if = $this->engine->validate( 'if(regular_price > 0)' );
+		$this->assertIsString( $bad_if );
+		$this->assertStringContainsString( 'if() expects 2 or 3 arguments', $bad_if );
+
+		$this->assertTrue( $this->engine->validate( 'round(regular_price * 0.9, 2)' ) );
+	}
+
+	public function test_empty_string_addition_and_boolean_numeric_equality(): void {
+		$this->assertEqualsWithDelta( 100.0, (float) $this->engine->evaluate( 'regular_price + sale_price', [ 'regular_price' => 100, 'sale_price' => '' ] ), 1e-6 );
+		$this->assertTrue( (bool) $this->engine->evaluate( 'manage_stock == 0', [ 'manage_stock' => false ] ) );
+		$this->assertTrue( (bool) $this->engine->evaluate( 'manage_stock == 1', [ 'manage_stock' => true ] ) );
+		$this->assertFalse( (bool) $this->engine->evaluate( 'manage_stock == 1', [ 'manage_stock' => false ] ) );
+	}
 }

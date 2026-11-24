@@ -50,7 +50,7 @@ final class CommentEntityAdapter implements EntityAdapterInterface {
 	}
 
 	public function can_read(): bool {
-		return current_user_can( 'moderate_comments' ) || current_user_can( 'edit_posts' );
+		return current_user_can( 'moderate_comments' );
 	}
 
 	public function can_edit( int $record_id ): bool {
@@ -196,6 +196,21 @@ final class CommentEntityAdapter implements EntityAdapterInterface {
 				$args['type'] = sanitize_key( $val );
 			} elseif ( 'post_id' === $field && in_array( $op, [ 'is', 'equals' ], true ) && is_numeric( $val ) ) {
 				$args['post_id'] = (int) $val;
+			} elseif ( 'rating' === $field && '' !== $val && is_numeric( $val ) ) {
+				$compare = match ( $op ) {
+					'gt'    => '>',
+					'gte'   => '>=',
+					'lt'    => '<',
+					'lte'   => '<=',
+					default => '=',
+				};
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				$args['meta_query'][] = [
+					'key'     => 'rating',
+					'value'   => (int) $val,
+					'compare' => $compare,
+					'type'    => 'NUMERIC',
+				];
 			}
 		}
 

@@ -65,7 +65,7 @@ if ( $prod_adapter ) {
 
 	// 3. Built-in Audit Lenses (Pricing Anomaly & Inventory Risk).
 	$margin_res = $prod_adapter->query( QueryRequest::from_array( 'product', [ 'lens' => 'woo_margin_audit' ] ) );
-	$assert( $margin_res->total >= 2, sprintf( 'Pricing & SKU Audit lens detected %d anomalous products', $margin_res->total ) );
+	$assert( $margin_res->total === 1, sprintf( 'Pricing & SKU Audit lens detected exact %d anomalous product without false-positiving valid on-sale items', $margin_res->total ) );
 
 	$inv_res = $prod_adapter->query( QueryRequest::from_array( 'product', [ 'lens' => 'woo_inventory_risk' ] ) );
 	$assert( $inv_res->total >= 4, sprintf( 'Inventory Risk lens detected %d low/out-of-stock products', $inv_res->total ) );
@@ -234,6 +234,81 @@ if ( $prod_adapter ) {
 	// Verify ACF colon-namespaced sort_field works cleanly.
 	$acf_sort = $prod_adapter->query( QueryRequest::from_array( 'product', [ 'sort_field' => 'acf:unit_cost', 'sort_direction' => 'desc', 'per_page' => 5 ] ) );
 	$assert( count( $acf_sort->items ) >= 1, 'Sorting by colon-namespaced ACF column (acf:unit_cost) succeeded' );
+
+	// 14. v1.1.2 Round-2 Bug-Hunt Regressions: sale_price/regular_price filters, backorder preservation, duplicate SKU clearing, serialized meta guard, security checks.
+	$no_sale = $prod_adapter->query(
+		QueryRequest::from_array(
+			'product',
+			[
+				'filters' => [ [ 'field' => 'sale_price', 'operator' => 'isempty', 'value' => '' ] ],
+			]
+		)
+	);
+	$assert( $no_sale->total >= 7, sprintf( 'sale_price isempty accurately matched %d non-sale products (no lookup min_price confusion)', $no_sale->total ) );
+
+	$reg_199 = $prod_adapter->query(
+		QueryRequest::from_array(
+			'product',
+			[
+				'filters' => [ [ 'field' => 'regular_price', 'operator' => 'is', 'value' => '199' ] ],
+			]
+		)
+	);
+	$assert( $reg_199->total >= 1, 'regular_price = 199 accurately matched on-sale Keychron Q1 Pro (reg=199, sale=179)' );
+
+	$manage_true = $prod_adapter->query(
+		QueryRequest::from_array(
+			'product',
+			[
+				'filters' => [ [ 'field' => 'manage_stock', 'operator' => 'is', 'value' => 'true' ] ],
+			]
+		)
+	);
+	$assert( $manage_true->total >= 1, sprintf( 'Boolean meta filter (manage_stock is true) matched %d WooCommerce products', $manage_true->total ) );
+
+	// Duplicate product clears unique SKU cleanly without WC_Data_Exception.
+	$dup_id = $prod_adapter->duplicate_record( 27 );
+	$assert( ! is_wp_error( $dup_id ) && '' === (string) $plugin->fields()->read_value( 'product', (int) $dup_id, 'sku' ), 'WooProductEntityAdapter::duplicate_record() cleared unique SKU on duplicate' );
+	if ( ! is_wp_error( $dup_id ) ) {
+		wp_delete_post( (int) $dup_id, true );
+	}
+
+	// Serialized array meta guard prevents string corruption.
+	update_post_meta( 27, 'dd_test_serialized', [ 'nested' => true ] );
+	$native_provider = $plugin->fields()->get_provider( 'native_meta' );
+	$ser_field       = new \DataDeck\Schema\FieldDefinition( 'meta:dd_test_serialized', 'Serialized', 'text', 'meta', 'native_meta', meta_key: 'dd_test_serialized' );
+	$ser_res         = $native_provider ? $native_provider->write_value( 'product', 27, $ser_field, 'plain-text-overwrite' ) : null;
+	$assert( is_wp_error( $ser_res ) && is_array( get_post_meta( 27, 'dd_test_serialized', true ) ), 'NativeMetaFieldProvider blocked overwriting serialized PHP array with plain string' );
+	delete_post_meta( 27, 'dd_test_serialized' );
+}
+
+// Security regression: unauthorized order delete & contributor publish downgrade.
+if ( $order_adapter && $post_adapter ) {
+	$prev_uid = get_current_user_id();
+	$contrib  = get_users( [ 'role' => 'contributor', 'number' => 1, 'fields' => 'ID' ] );
+	$cid_user = ! empty( $contrib ) ? (int) $contrib[0] : (int) wp_insert_user(
+		[
+			'user_login' => 'dd_qa_contrib',
+			'user_pass'  => wp_generate_password( 16 ),
+			'user_email' => 'dd_qa_contrib@example.com',
+			'role'       => 'contributor',
+		]
+	);
+	wp_set_current_user( $cid_user );
+	$order_del = $order_adapter->delete_records( [ 1 ] );
+	$assert( empty( $order_del['deleted'] ) && count( $order_del['errors'] ) === 1, 'WooOrderEntityAdapter::delete_records() enforced delete_shop_orders capability' );
+	$assert( ! $comment_adapter->can_read(), 'CommentEntityAdapter::can_read() requires moderate_comments (blocked Contributor)' );
+
+	$created_post = $post_adapter->create_record( [ 'title' => 'Contrib Attempt', 'status' => 'publish' ] );
+	$assert( ! is_wp_error( $created_post ) && 'draft' === get_post_status( (int) $created_post ), 'PostEntityAdapter::create_record() downgraded unauthorized publish to draft for Contributor' );
+	wp_set_current_user( $prev_uid );
+	if ( ! is_wp_error( $created_post ) ) {
+		wp_delete_post( (int) $created_post, true );
+	}
+	if ( empty( $contrib ) && $cid_user > 0 ) {
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		wp_delete_user( $cid_user );
+	}
 }
 
 if ( ! empty( $failures ) ) {

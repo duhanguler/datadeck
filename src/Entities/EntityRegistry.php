@@ -115,4 +115,27 @@ final class EntityRegistry {
 		}
 		return $list;
 	}
+
+	/**
+	 * Return all available entities (used by WP-CLI diagnostics where no user session is set).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function list_available(): array {
+		$this->discover();
+		$list = [];
+		foreach ( $this->adapters as $adapter ) {
+			if ( ! $adapter->is_available() ) {
+				continue;
+			}
+			$list[] = [
+				'slug'        => $adapter->get_slug(),
+				'label'       => $adapter->get_label(),
+				'pluralLabel' => $adapter->get_plural_label(),
+				'group'       => $adapter->get_group(),
+				'canCreate'   => $adapter->can_create(),
+			];
+		}
+		return $list;
+	}
 }

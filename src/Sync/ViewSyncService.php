@@ -61,35 +61,17 @@ final class ViewSyncService {
 			return new WP_Error( 'datadeck_view_name', __( 'View name is required.', 'datadeck' ), [ 'status' => 400 ] );
 		}
 
-		$id   = ! empty( $payload['id'] ) ? sanitize_key( (string) $payload['id'] ) : sanitize_title( $entity_slug . '-' . $name . '-' . substr( wp_generate_uuid4(), 0, 6 ) );
-		$cols = array_values( array_filter( array_map( static fn( mixed $c ): string => (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) $c ), (array) ( $payload['columns'] ?? [] ) ) ) );
-
-		$widths = [];
-		if ( ! empty( $payload['columnWidths'] ) && is_array( $payload['columnWidths'] ) ) {
-			foreach ( $payload['columnWidths'] as $col_id => $w ) {
-				$clean_id            = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) $col_id );
-				$widths[ $clean_id ] = min( 640, max( 56, (int) $w ) );
-			}
+		$raw_id = ! empty( $payload['id'] )
+			? (string) $payload['id']
+			: sanitize_title( $entity_slug . '-' . $name ) . '-' . substr( wp_generate_uuid4(), 0, 6 );
+		$id     = sanitize_key( $raw_id );
+		if ( '' === $id ) {
+			$id = sanitize_key( $entity_slug . '-view-' . substr( wp_generate_uuid4(), 0, 6 ) );
 		}
-
-		$density = in_array( $payload['density'] ?? 'default', [ 'compact', 'default', 'comfortable' ], true )
-			? (string) $payload['density']
-			: 'default';
-
-		$view = [
-			'id'             => $id,
-			'entity'         => sanitize_key( $entity_slug ),
-			'name'           => $name,
-			'columns'        => $cols,
-			'columnWidths'   => $widths,
-			'density'        => $density,
-			'sortField'      => (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) ( $payload['sortField'] ?? 'id' ) ),
-			'sortDirection'  => 'asc' === strtolower( (string) ( $payload['sortDirection'] ?? 'desc' ) ) ? 'asc' : 'desc',
-			'filters'        => is_array( $payload['filters'] ?? null ) ? $payload['filters'] : [],
-			'filterRelation' => 'OR' === strtoupper( (string) ( $payload['filterRelation'] ?? 'AND' ) ) ? 'OR' : 'AND',
-			'roles'          => array_values( array_map( 'sanitize_key', (array) ( $payload['roles'] ?? [] ) ) ),
-			'updatedAt'      => time(),
-		];
+		$view = $this->normalize_view_payload( $entity_slug, $id, $payload );
+		if ( is_wp_error( $view ) ) {
+			return $view;
+		}
 
 		$all        = $this->load_all_db_views();
 		$all[ $id ] = $view;
@@ -98,6 +80,78 @@ final class ViewSyncService {
 		$this->maybe_write_local_json( $view );
 
 		return $view;
+	}
+
+	/**
+	 * Sanitize and normalize a saved view payload (used for both REST writes and datadeck-json/ imports).
+	 *
+	 * @param string               $entity_slug Entity slug.
+	 * @param string               $id          Sanitized view ID.
+	 * @param array<string, mixed> $payload     Raw payload.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	private function normalize_view_payload( string $entity_slug, string $id, array $payload ): array|WP_Error {
+		$name = sanitize_text_field( (string) ( $payload['name'] ?? '' ) );
+		if ( '' === $name ) {
+			return new WP_Error( 'datadeck_view_name', __( 'View name is required.', 'datadeck' ), [ 'status' => 400 ] );
+		}
+
+		$cols = array_values( array_filter( array_map( static fn( mixed $c ): string => (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) $c ), (array) ( $payload['columns'] ?? [] ) ) ) );
+
+		$widths = [];
+		if ( ! empty( $payload['columnWidths'] ) && is_array( $payload['columnWidths'] ) ) {
+			foreach ( $payload['columnWidths'] as $col_id => $w ) {
+				$clean_id = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) $col_id );
+				if ( '' !== $clean_id ) {
+					$widths[ $clean_id ] = min( 640, max( 56, (int) $w ) );
+				}
+			}
+		}
+
+		$density = in_array( $payload['density'] ?? 'default', [ 'compact', 'default', 'comfortable' ], true )
+			? (string) $payload['density']
+			: 'default';
+
+		$filters = [];
+		if ( is_array( $payload['filters'] ?? null ) ) {
+			foreach ( $payload['filters'] as $f ) {
+				if ( ! is_array( $f ) || empty( $f['field'] ) || empty( $f['operator'] ) ) {
+					continue;
+				}
+				$f_field = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) $f['field'] );
+				$f_op    = sanitize_key( (string) $f['operator'] );
+				if ( '' === $f_field || '' === $f_op ) {
+					continue;
+				}
+				$clause = [
+					'id'       => sanitize_key( (string) ( $f['id'] ?? wp_generate_uuid4() ) ),
+					'field'    => $f_field,
+					'operator' => $f_op,
+					'value'    => sanitize_text_field( (string) ( $f['value'] ?? '' ) ),
+				];
+				if ( isset( $f['value2'] ) && '' !== (string) $f['value2'] ) {
+					$clause['value2'] = sanitize_text_field( (string) $f['value2'] );
+				}
+				$filters[] = $clause;
+			}
+		}
+
+		$sort_field = (string) preg_replace( '/[^a-zA-Z0-9_\-:]/', '', (string) ( $payload['sortField'] ?? 'id' ) );
+
+		return [
+			'id'             => $id,
+			'entity'         => sanitize_key( $entity_slug ),
+			'name'           => $name,
+			'columns'        => $cols,
+			'columnWidths'   => $widths,
+			'density'        => $density,
+			'sortField'      => '' !== $sort_field ? $sort_field : 'id',
+			'sortDirection'  => 'asc' === strtolower( (string) ( $payload['sortDirection'] ?? 'desc' ) ) ? 'asc' : 'desc',
+			'filters'        => $filters,
+			'filterRelation' => 'OR' === strtoupper( (string) ( $payload['filterRelation'] ?? 'AND' ) ) ? 'OR' : 'AND',
+			'roles'          => array_values( array_map( 'sanitize_key', (array) ( $payload['roles'] ?? [] ) ) ),
+			'updatedAt'      => ! empty( $payload['updatedAt'] ) ? (int) $payload['updatedAt'] : time(),
+		];
 	}
 
 	/**
@@ -173,8 +227,16 @@ final class ViewSyncService {
 		$count  = 0;
 
 		foreach ( $status['syncAvailable'] as $view ) {
-			$id         = sanitize_key( (string) $view['id'] );
-			$all[ $id ] = $view;
+			$id     = sanitize_key( (string) $view['id'] );
+			$entity = sanitize_key( (string) ( $view['entity'] ?? '' ) );
+			if ( '' === $id || '' === $entity ) {
+				continue;
+			}
+			$normalized = $this->normalize_view_payload( $entity, $id, $view );
+			if ( is_wp_error( $normalized ) ) {
+				continue;
+			}
+			$all[ $id ] = $normalized;
 			++$count;
 		}
 

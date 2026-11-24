@@ -72,6 +72,52 @@ export function generateFillSeries(
 }
 
 /**
+ * Parse a locale-formatted scalar or currency string (e.g. "$1,250.00", "49,90", "1.250,99")
+ * into a finite number, returning null for plain non-numeric text like "Coffee" or "SKU-001".
+ */
+export function parseLocaleNumber( value: unknown ): number | null {
+	if ( typeof value === 'number' ) {
+		return Number.isFinite( value ) ? value : null;
+	}
+	if ( value === null || value === undefined || typeof value === 'boolean' || typeof value === 'object' ) {
+		return null;
+	}
+	const raw = String( value ).trim();
+	if ( raw === '' ) {
+		return null;
+	}
+	// Strip common currency symbols, percent signs, and whitespace only; reject alphabetic text like "SKU-001".
+	const stripped = raw.replace( /^[\s$€£¥₺₹₩₽]+|[\s$€£¥₺₹₩₽%]+$/g, '' ).replace( /\s+/g, '' );
+	if ( ! /^-?\d[\d.,]*$/.test( stripped ) ) {
+		return null;
+	}
+
+	const commaCount = ( stripped.match( /,/g ) || [] ).length;
+	const dotCount = ( stripped.match( /\./g ) || [] ).length;
+	let normalized = stripped;
+
+	if ( commaCount > 0 && dotCount > 0 ) {
+		// Whichever separator appears last is the decimal mark (e.g. 1,250.99 vs 1.250,99).
+		if ( stripped.lastIndexOf( ',' ) > stripped.lastIndexOf( '.' ) ) {
+			normalized = stripped.replace( /\./g, '' ).replace( ',', '.' );
+		} else {
+			normalized = stripped.replace( /,/g, '' );
+		}
+	} else if ( commaCount === 1 ) {
+		// Single comma: decimal if 1-2 digits after comma (e.g. 49,90), thousands if 3 digits (e.g. 1,250).
+		const parts = stripped.split( ',' );
+		normalized = parts[ 1 ].length === 3 ? parts.join( '' ) : parts.join( '.' );
+	} else if ( commaCount > 1 ) {
+		normalized = stripped.replace( /,/g, '' );
+	} else if ( dotCount > 1 ) {
+		normalized = stripped.replace( /\./g, '' );
+	}
+
+	const n = Number( normalized );
+	return Number.isFinite( n ) ? n : null;
+}
+
+/**
  * Compute real-time SUM, AVG, MIN, MAX, COUNT over a slice of cell values (zero extra SQL).
  */
 export function computeNumericAggregation( values: unknown[] ): AggregationSummary {
@@ -86,8 +132,8 @@ export function computeNumericAggregation( values: unknown[] ): AggregationSumma
 			emptyCount++;
 			continue;
 		}
-		const n = typeof v === 'number' ? v : Number( String( v ).replace( /[^0-9.-]/g, '' ) );
-		if ( ! Number.isNaN( n ) && Number.isFinite( n ) ) {
+		const n = parseLocaleNumber( v );
+		if ( n !== null ) {
 			numericCount++;
 			sum += n;
 			if ( n < min ) {

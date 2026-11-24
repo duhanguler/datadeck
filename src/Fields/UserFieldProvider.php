@@ -193,11 +193,12 @@ final class UserFieldProvider implements FieldProviderInterface {
 
 			foreach ( $fields as $fid => $field ) {
 				if ( 'role' === $fid ) {
-					$caps = $meta_cache[ $uid ][ $cap_key ][0] ?? $user->caps;
-					$role = '';
+					$caps     = $meta_cache[ $uid ][ $cap_key ][0] ?? $user->caps;
+					$wp_roles = wp_roles();
+					$role     = '';
 					if ( is_array( $caps ) ) {
 						foreach ( $caps as $r => $enabled ) {
-							if ( $enabled ) {
+							if ( $enabled && $wp_roles->is_role( (string) $r ) ) {
 								$role = (string) $r;
 								break;
 							}
@@ -240,12 +241,18 @@ final class UserFieldProvider implements FieldProviderInterface {
 
 	public function write_value( string $entity_slug, int $record_id, FieldDefinition $field, mixed $value ): bool|WP_Error {
 		if ( 'role' === $field->id ) {
-			if ( ! current_user_can( 'promote_users' ) || get_current_user_id() === $record_id ) {
+			if ( ! current_user_can( 'promote_user', $record_id ) || get_current_user_id() === $record_id ) {
 				return new WP_Error( 'datadeck_role_forbidden', __( 'Cannot change this user role.', 'datadeck' ), [ 'status' => 403 ] );
 			}
 			$role = sanitize_key( (string) $value );
 			if ( ! wp_roles()->is_role( $role ) ) {
 				return new WP_Error( 'datadeck_invalid_role', __( 'Invalid role.', 'datadeck' ), [ 'status' => 400 ] );
+			}
+			if ( function_exists( 'get_editable_roles' ) ) {
+				$editable = get_editable_roles();
+				if ( ! isset( $editable[ $role ] ) ) {
+					return new WP_Error( 'datadeck_role_forbidden', __( 'You are not allowed to assign this role.', 'datadeck' ), [ 'status' => 403 ] );
+				}
 			}
 			$user = get_userdata( $record_id );
 			if ( ! $user instanceof WP_User ) {

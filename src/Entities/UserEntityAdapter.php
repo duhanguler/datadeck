@@ -101,8 +101,13 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 		}
 
 		foreach ( $request->filters as $f ) {
-			if ( 'role' === ( $f['field'] ?? '' ) && 'is' === ( $f['operator'] ?? '' ) && ! empty( $f['value'] ) ) {
-				$args['role'] = sanitize_key( (string) $f['value'] );
+			$field = (string) ( $f['field'] ?? '' );
+			$op    = (string) ( $f['operator'] ?? '' );
+			$val   = (string) ( $f['value'] ?? '' );
+			if ( 'role' === $field && in_array( $op, [ 'is', 'equals' ], true ) && '' !== $val ) {
+				$args['role'] = sanitize_key( $val );
+			} elseif ( 'role' === $field && in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) && '' !== $val ) {
+				$args['role__not_in'] = [ sanitize_key( $val ) ];
 			}
 		}
 
@@ -139,8 +144,13 @@ final class UserEntityAdapter implements EntityAdapterInterface {
 		}
 
 		foreach ( $request->filters as $f ) {
-			if ( 'role' === ( $f['field'] ?? '' ) && in_array( (string) ( $f['operator'] ?? '' ), [ 'is', 'equals' ], true ) && ! empty( $f['value'] ) ) {
-				$args['role'] = sanitize_key( (string) $f['value'] );
+			$field = (string) ( $f['field'] ?? '' );
+			$op    = (string) ( $f['operator'] ?? '' );
+			$val   = (string) ( $f['value'] ?? '' );
+			if ( 'role' === $field && in_array( $op, [ 'is', 'equals' ], true ) && '' !== $val ) {
+				$args['role'] = sanitize_key( $val );
+			} elseif ( 'role' === $field && in_array( $op, [ 'isnot', 'is_not', 'not_equals' ], true ) && '' !== $val ) {
+				$args['role__not_in'] = [ sanitize_key( $val ) ];
 			}
 		}
 

@@ -3,7 +3,7 @@
  * Plugin Name:       DataDeck – Admin Columns, Inline & Bulk Editor
  * Plugin URI:        https://github.com/duhanguler/datadeck
  * Description:       High-performance admin columns, zero-shift inline spreadsheet editor, safe AST bulk formulas, and one-click rollback for WordPress and WooCommerce.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Requires at least: 6.6
  * Requires PHP:      8.1
  * Author:            Duhan Güler
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DATADECK_VERSION', '1.1.1' );
+define( 'DATADECK_VERSION', '1.1.2' );
 define( 'DATADECK_FILE', __FILE__ );
 define( 'DATADECK_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DATADECK_URL', plugin_dir_url( __FILE__ ) );
@@ -82,7 +82,9 @@ add_action(
 		$is_cli      = defined( 'WP_CLI' ) && WP_CLI;
 		$is_cron     = wp_doing_cron();
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
-		$is_rc_rest  = str_contains( $request_uri, 'datadeck/v1' ) || str_contains( $request_uri, 'rest_route=' );
+		$is_rc_rest  = str_contains( $request_uri, 'datadeck/v1' )
+			|| str_contains( $request_uri, 'wp-abilities/' )
+			|| str_contains( $request_uri, 'rest_route=' );
 
 		if ( ! $is_admin && ! $is_rest && ! $is_cli && ! $is_cron && ! $is_rc_rest ) {
 			return;
